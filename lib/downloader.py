@@ -132,7 +132,7 @@ def email_result(recipient, attachment):
         ses = boto3.client('ses', region)
         response = ses.send_raw_email(
             Source=msg['From'],
-            Destinations=msg['To'],
+            Destinations=[msg['To']],
             RawMessage={'Data': str(msg)}
         )
         logger.info('Email send:')
