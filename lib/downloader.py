@@ -44,12 +44,11 @@ log_date = args.date
 pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
 
-
 if pg_badger_path is None:
     sys.exit('Please install pgbadger')
 
 logger.debug('Path: {}'.format(str(pg_badger_path)))
-cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.* -o postgresql.{}.html".format(str(pg_badger_path),
+cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}-* -o postgresql.{}.html".format(str(pg_badger_path),
                                                                                             str(parallel_processes),
                                                                                             str(log_date),
                                                                                             str(log_date))
@@ -138,7 +137,8 @@ def email_result(recipient, attachment):
             RawMessage={'Data': msg}
 
         )
-        logger.info('Email send: {}'.format(str(response)))
+        logger.info('Email send:')
+        logger.debug('email:'.format(str(response)))
 
     except ClientError as e:
         logger.error('Could not sent email: {}'.format(str(e.message)))
@@ -180,7 +180,10 @@ if __name__ == '__main__':
                     sys.stdout.write(out)
                     sys.stdout.flush()
 
-            email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
+            if args.email == None:
+                logger.info('No recipient, no email')
+            else:
+                email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
 
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
