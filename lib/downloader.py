@@ -42,6 +42,8 @@ rds_instance = args.rds_instance
 log_date = args.date
 pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
+
+
 if pg_badger_path is None:
     sys.exit('Please install pgbadger')
 
@@ -144,10 +146,9 @@ def email_result(recipient, attachment):
 if __name__ == '__main__':
 
     try:
-        logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
-            str(cpu_count()), str(parallel_processes)))
-
         if not args.nodl:
+            logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
+                str(cpu_count()), str(parallel_processes)))
             logfiles = list_rds_log_files()
             try:
                 with Pool(max_workers=int(parallel_processes * 2)) as executor:
