@@ -41,8 +41,9 @@ if pg_badger_path is None:
     sys.exit('Please install pgbadger')
 
 logger.debug('Path: {}'.format(str(pg_badger_path)))
-cmd = "/usr/bin/pgbadger -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.*  -o postgresql.{}.html".format(
-    str(parallel_processes), str(date), str(date))
+cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.*  -o postgresql.{}.html".format(str(pg_badger_path),
+                                                                                             str(parallel_processes),
+                                                                                             str(date), str(date))
 
 
 def list_rds_log_files():
@@ -108,16 +109,19 @@ if __name__ == '__main__':
         str(cpu_count()), str(parallel_processes)))
     try:
         logfiles = list_rds_log_files()
-        with Pool(max_workers=int(parallel_processes)) as executor:
-            logfile_future = dict((executor.submit(download, logfile), logfile)
-                                  for logfile in logfiles)
-            for future in futures.as_completed(logfile_future):
-                file_result = logfile_future[future]
-                if future.exception() is not None:
-                    logger.error('{} generated an Exception: {}. class: {}'.format(file_result, future.exception()),
-                                 future.exception().__class__.__name__)
-                else:
-                    logger.info('done')
+        try:
+            with Pool(max_workers=int(parallel_processes)) as executor:
+                logfile_future = dict((executor.submit(download, logfile), logfile)
+                                      for logfile in logfiles)
+                for future in futures.as_completed(logfile_future):
+                    file_result = logfile_future[future]
+                    if future.exception() is not None:
+                        logger.error('{} generated an Exception: {}. class: {}'.format(file_result, future.exception()),
+                                     future.exception().__class__.__name__)
+                    else:
+                        logger.info('done')
+        except Exception as e:
+            logger.error('something got wrong: {}. Exceptionclass: {}'.format(str(e.message), str(e.__class__.__name__)))
 
         logger.info('Downloading logs finished. Proceeding with analysis')
         logger.debug('Commandline: {}'.format(str(cmd)))
