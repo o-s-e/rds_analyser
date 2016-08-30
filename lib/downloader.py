@@ -6,6 +6,7 @@ import sys
 import argparse
 import boto3
 import time
+from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor as Pool
@@ -19,6 +20,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
+parallel_processes = int(cpu_count()) + 1
 today = time.strftime("%Y-%m-%d")
 
 parser = argparse.ArgumentParser(description='Simplistic RDS logfile '
@@ -60,7 +62,7 @@ def download(log_file):
     with open(local_log_file, 'w') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
         token = '0'
-        logger.debug('Logfile: {}. Init token: {}'.format(str(log_file), str(token)))
+        # logger.debug('Logfile: {}. Init token: {}'.format(str(log_file), str(token)))
         try:
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
@@ -70,7 +72,7 @@ def download(log_file):
             while response['AdditionalDataPending']:
                 try:
                     token = response['Marker']
-                    logger.debug('Logfile: {}. Response token: {}'.format(str(log_file), str(token)))
+                    # logger.debug('Logfile: {}. Response token: {}'.format(str(log_file), str(token)))
                     response = rds.download_db_log_file_portion(
                         DBInstanceIdentifier=rds_instance,
                         LogFileName=log_file,
@@ -91,6 +93,8 @@ def download(log_file):
 
 
 if __name__ == '__main__':
+    logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
+        str(cpu_count(), str(parallel_processes))))
     try:
         logfiles = list_rds_log_files()
         with Pool(max_workers=5) as executor:
@@ -99,7 +103,8 @@ if __name__ == '__main__':
             for future in futures.as_completed(logfile_future):
                 file = logfile_future[future]
                 if future.exception() is not None:
-                    logger.error('{} generated an Exception: {}. class: {}'.format(file, future.exception()), future.exception().__class__.__name__)
+                    logger.error('{} generated an Exception: {}. class: {}'.format(file, future.exception()),
+                                 future.exception().__class__.__name__)
                 else:
                     logger.info('done')
 
