@@ -112,7 +112,8 @@ def download(log_file):
 
 
 def email_result(recipient, attachment):
-    msg = MIMEMultipart()
+    msg = MIMEMultipart('alternative')
+    msg.set_charset('UTF-8')
     msg['Subject'] = 'Pgpadger report from {}'.format(str(log_date))
     msg['From'] = 'ose@recommind.com'
     msg['To'] = recipient
@@ -129,10 +130,11 @@ def email_result(recipient, attachment):
 
     try:
         ses = boto3.client('ses', region)
-        response = ses.send_raw_email(msg.as_string(),
-                                      Source=msg['From'],
-                                      Destinations=msg['To']
-                                      )
+        response = ses.send_raw_email(
+            Source=msg['From'],
+            Destinations=msg['To'],
+            RawMessage={'Data': str(msg)}
+        )
         logger.info('Email send:')
         logger.debug('email:'.format(str(response)))
 
