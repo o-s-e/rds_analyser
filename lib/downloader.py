@@ -7,6 +7,7 @@ import argparse
 import boto3
 import time
 import subprocess
+from distutils import spawn
 from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
@@ -34,10 +35,12 @@ args = parser.parse_args()
 region = args.region
 rds_instance = args.rds_instance
 date = args.date
+pg_badger_path = spawn.find_executable('pgbadger')
 
-if not any(os.access(os.path.join(path, 'pgbadger'), os.X_OK) for path in os.environ["PATH"].split(os.pathsep)):
+if pg_badger_path is None:
     sys.exit('Please install pgbadger')
-logger.debug('Path: {}'.format(str(os.path.join(path, 'pgbadger'), os.X_OK) for path in os.environ["PATH"].split(os.pathsep)))
+
+logger.debug('Path: {}'.format(str(pg_badger_path)))
 cmd = "/usr/bin/pgbadger -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.*  -o postgresql.{}.html".format(
     str(parallel_processes), str(date), str(date))
 
