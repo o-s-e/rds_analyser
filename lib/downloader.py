@@ -147,7 +147,7 @@ if __name__ == '__main__':
         logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
             str(cpu_count()), str(parallel_processes)))
 
-        if args.nodl:
+        if not args.nodl:
             logfiles = list_rds_log_files()
             try:
                 with Pool(max_workers=int(parallel_processes * 2)) as executor:
