@@ -7,6 +7,9 @@ import argparse
 import boto3
 import time
 import subprocess
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 from distutils import spawn
 from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
@@ -30,20 +33,22 @@ parser = argparse.ArgumentParser(description='Simplistic RDS logfile '
 parser.add_argument('--region', default='us-east-1')
 parser.add_argument('--rds-instance', required=True, help='The RDS name')
 parser.add_argument('--date', default=today, help='define the date')
+parser.add_argument('--email', default=None, help='define the email recipient')
 
 args = parser.parse_args()
 region = args.region
 rds_instance = args.rds_instance
-date = args.date
+log_date = args.date
 pg_badger_path = spawn.find_executable('pgbadger')
-
+email_recipient = args.email
 if pg_badger_path is None:
     sys.exit('Please install pgbadger')
 
 logger.debug('Path: {}'.format(str(pg_badger_path)))
-cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.*  -o postgresql.{}.html".format(str(pg_badger_path),
-                                                                                             str(parallel_processes),
-                                                                                             str(date), str(date))
+cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.* -o postgresql.{}.html".format(str(pg_badger_path),
+                                                                                            str(parallel_processes),
+                                                                                            str(log_date),
+                                                                                            str(log_date))
 
 
 def list_rds_log_files():
@@ -54,7 +59,7 @@ def list_rds_log_files():
     try:
         response = rds.describe_db_log_files(
             DBInstanceIdentifier=rds_instance,
-            FilenameContains=date)
+            FilenameContains=log_date)
         logger.debug('RDS logfiles dict: {}'.format(str(response)))
         logfile_list = map(lambda d: d['LogFileName'], response['DescribeDBLogFiles'])
         logger.debug('logfile list: {}'.format(str(logfile_list)))
@@ -103,6 +108,38 @@ def download(log_file):
             sys.exit(2)
 
 
+def email_result(recipient, attachment):
+    msg = MIMEMultipart()
+    msg['Subject'] = 'Pgpadger report from {}'.format(str(log_date))
+    msg['From'] = 'ose@recommind.com'
+    msg['To'] = recipient
+
+    msg.preamble = 'Multipart message.\n'
+
+    # the message body
+    part = MIMEText('Howdy -- here is the daily PgBadger report from {}.'.format(str(log_date)))
+    msg.attach(part)
+
+    part = MIMEApplication(open(attachment, 'rb').read())
+    part.add_header('Content-Disposition', 'attachment', filename='postgresql.{}.html'.format(str(log_date)))
+    msg.attach(part)
+
+    try:
+        ses = boto3.client('ses', region)
+        response = ses.send_raw_email(
+            Source='ose@recommind.com',
+            Destination={'ToAddresses':
+                             [recipient]
+                         },
+            RawMessage={'Data': msg}
+
+        )
+        logger.info('Email send: {}'.format(str(response)))
+
+    except ClientError as e:
+        logger.error('Could not sent email: {}'.format(str(e.message)))
+
+
 if __name__ == '__main__':
 
     logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
@@ -110,7 +147,7 @@ if __name__ == '__main__':
     try:
         logfiles = list_rds_log_files()
         try:
-            with Pool(max_workers=int(parallel_processes)) as executor:
+            with Pool(max_workers=int(parallel_processes * 2)) as executor:
                 logfile_future = dict((executor.submit(download, logfile), logfile)
                                       for logfile in logfiles)
                 for future in futures.as_completed(logfile_future):
@@ -121,7 +158,8 @@ if __name__ == '__main__':
                     else:
                         logger.info('done')
         except Exception as e:
-            logger.error('something got wrong: {}. Exceptionclass: {}'.format(str(e.message), str(e.__class__.__name__)))
+            logger.error(
+                'something got wrong: {}. Exceptionclass: {}'.format(str(e.message), str(e.__class__.__name__)))
 
         logger.info('Downloading logs finished. Proceeding with analysis')
         logger.debug('Commandline: {}'.format(str(cmd)))
@@ -133,6 +171,8 @@ if __name__ == '__main__':
             if out != '':
                 sys.stdout.write(out)
                 sys.stdout.flush()
+
+        email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
 
 
     except Exception as e:
