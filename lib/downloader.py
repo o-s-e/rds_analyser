@@ -6,6 +6,7 @@ import sys
 import argparse
 import boto3
 import time
+import subprocess
 from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
@@ -33,6 +34,9 @@ args = parser.parse_args()
 region = args.region
 rds_instance = args.rds_instance
 date = args.date
+
+cmd = "/usr/bin/pgbadger -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.*  -o postgresql.{}.html".format(
+    str(parallel_processes), str(date), str(date))
 
 
 def list_rds_log_files():
@@ -97,16 +101,28 @@ if __name__ == '__main__':
         str(cpu_count()), str(parallel_processes)))
     try:
         logfiles = list_rds_log_files()
-        with Pool(max_workers=5) as executor:
+        with Pool(max_workers=int(parallel_processes)) as executor:
             logfile_future = dict((executor.submit(download, logfile), logfile)
                                   for logfile in logfiles)
             for future in futures.as_completed(logfile_future):
-                file = logfile_future[future]
+                file_result = logfile_future[future]
                 if future.exception() is not None:
-                    logger.error('{} generated an Exception: {}. class: {}'.format(file, future.exception()),
+                    logger.error('{} generated an Exception: {}. class: {}'.format(file_result, future.exception()),
                                  future.exception().__class__.__name__)
                 else:
                     logger.info('done')
+
+        logger.info('Downloading logs finished. Proceeding with analysis')
+        logger.debug('Commandline: {}'.format(str(cmd)))
+        pg_badger = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
+        while True:
+            out = pg_badger.stderr.read(1)
+            if out == '' and pg_badger.poll() is not None:
+                break
+            if out != '':
+                sys.stdout.write(out)
+                sys.stdout.flush()
+
 
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
