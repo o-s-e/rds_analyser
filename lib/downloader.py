@@ -35,6 +35,9 @@ region = args.region
 rds_instance = args.rds_instance
 date = args.date
 
+if not any(os.access(os.path.join(path, 'pgbadger'), os.X_OK) for path in os.environ["PATH"].split(os.pathsep)):
+    sys.exit('Please install pgbadger')
+logger.debug('Path: {}'.format(str(os.access(os.path.join(path, 'pgbadger'), os.X_OK) for path in os.environ["PATH"].split(os.pathsep))))
 cmd = "/usr/bin/pgbadger -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}.*  -o postgresql.{}.html".format(
     str(parallel_processes), str(date), str(date))
 
@@ -97,6 +100,7 @@ def download(log_file):
 
 
 if __name__ == '__main__':
+
     logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
         str(cpu_count()), str(parallel_processes)))
     try:
