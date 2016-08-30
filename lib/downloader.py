@@ -8,7 +8,7 @@ import boto3
 import time
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
-from concurrent.futures import ThreadPoolExecutor as Pool
+from concurrent.futures import ProcessPoolExecutor as Pool
 
 __author__ = 'ose@recommind.com'
 
