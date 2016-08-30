@@ -7,7 +7,7 @@ import argparse
 import boto3
 import time
 from botocore.exceptions import NoRegionError, ClientError
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 __author__ = 'ose@recommind.com'
 
@@ -27,9 +27,12 @@ parser.add_argument('--rds-instance', required=True, help='The RDS name')
 parser.add_argument('--date', default=today, help='define the date')
 
 args = parser.parse_args()
+region = args.region
+rds_instance = args.rds_instance
+date = args.date
 
 
-def list_rds_log_files(rds_instance, region, date):
+def list_rds_log_files():
     try:
         rds = boto3.client('rds', region)
     except NoRegionError:
@@ -47,7 +50,7 @@ def list_rds_log_files(rds_instance, region, date):
         sys.exit(2)
 
 
-def download(log_file, rds_instance, region):
+def download(log_file):
     local_log_file = os.path.basename(log_file)
     try:
         rds = boto3.client('rds', region)
@@ -77,11 +80,9 @@ def download(log_file, rds_instance, region):
 
 if __name__ == '__main__':
     try:
-        list_rds_log_files(args.rds_instance, args.region, args.date)
+        logfiles = list_rds_log_files()
+        executor = ProcessPoolExecutor(5)
+        futures = [executor.submit(download(logfile) for logfile in logfiles)]
 
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
-
-    executor = ThreadPoolExecutor(max_workers=5)
-    futures = []
-
