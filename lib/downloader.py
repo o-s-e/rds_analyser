@@ -129,11 +129,10 @@ def email_result(recipient, attachment):
 
     try:
         ses = boto3.client('ses', region)
-        response = ses.send_raw_email(
-            Source='ose@recommind.com',
-            Destinations=[recipient],
-            RawMessage={'Data': str(msg)}
-        )
+        response = ses.send_raw_email(msg.as_string(),
+                                      Source=msg['From'],
+                                      Destinations=msg['To']
+                                      )
         logger.info('Email send:')
         logger.debug('email:'.format(str(response)))
 
