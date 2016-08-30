@@ -131,9 +131,7 @@ def email_result(recipient, attachment):
         ses = boto3.client('ses', region)
         response = ses.send_raw_email(
             Source='ose@recommind.com',
-            Destinations={'ToAddresses':
-                             [recipient]
-                         },
+            Destinations=[recipient],
             RawMessage={'Data': msg}
 
         )
