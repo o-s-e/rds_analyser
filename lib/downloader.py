@@ -94,7 +94,7 @@ def download(log_file):
 
 if __name__ == '__main__':
     logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
-        str(cpu_count(), str(parallel_processes))))
+        str(cpu_count()), str(parallel_processes)))
     try:
         logfiles = list_rds_log_files()
         with Pool(max_workers=5) as executor:
