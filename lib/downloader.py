@@ -3,6 +3,7 @@
 import logging
 import os.path
 import sys
+import glob
 import argparse
 import boto3
 import time
