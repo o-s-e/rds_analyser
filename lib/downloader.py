@@ -34,6 +34,7 @@ parser.add_argument('--region', default='us-east-1')
 parser.add_argument('--rds-instance', required=True, help='The RDS name')
 parser.add_argument('--date', default=today, help='define the date')
 parser.add_argument('--email', default=None, help='define the email recipient')
+parser.add_argument('--nodl', default=False, help='do not download, because the files are already there')
 
 args = parser.parse_args()
 region = args.region
@@ -142,38 +143,42 @@ def email_result(recipient, attachment):
 
 if __name__ == '__main__':
 
-    logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
-        str(cpu_count()), str(parallel_processes)))
     try:
-        logfiles = list_rds_log_files()
-        try:
-            with Pool(max_workers=int(parallel_processes * 2)) as executor:
-                logfile_future = dict((executor.submit(download, logfile), logfile)
-                                      for logfile in logfiles)
-                for future in futures.as_completed(logfile_future):
-                    file_result = logfile_future[future]
-                    if future.exception() is not None:
-                        logger.error('{} generated an Exception: {}. class: {}'.format(file_result, future.exception()),
-                                     future.exception().__class__.__name__)
-                    else:
-                        logger.info('done')
-        except Exception as e:
-            logger.error(
-                'something got wrong: {}. Exceptionclass: {}'.format(str(e.message), str(e.__class__.__name__)))
+        logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
+            str(cpu_count()), str(parallel_processes)))
 
-        logger.info('Downloading logs finished. Proceeding with analysis')
-        logger.debug('Commandline: {}'.format(str(cmd)))
-        pg_badger = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
-        while True:
-            out = pg_badger.stderr.read(1)
-            if out == '' and pg_badger.poll() is not None:
-                break
-            if out != '':
-                sys.stdout.write(out)
-                sys.stdout.flush()
+        if args.nodl:
+            logfiles = list_rds_log_files()
+            try:
+                with Pool(max_workers=int(parallel_processes * 2)) as executor:
+                    logfile_future = dict((executor.submit(download, logfile), logfile)
+                                          for logfile in logfiles)
+                    for future in futures.as_completed(logfile_future):
+                        file_result = logfile_future[future]
+                        if future.exception() is not None:
+                            logger.error(
+                                '{} generated an Exception: {}. class: {}'.format(file_result, future.exception()),
+                                future.exception().__class__.__name__)
+                        else:
+                            logger.info('done')
+            except Exception as e:
+                logger.error(
+                    'something got wrong: {}. Exceptionclass: {}'.format(str(e.message), str(e.__class__.__name__)))
+        else:
+            logger.info('nodl switch used, proceed with analysis')
 
-        email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
+            logger.info('Downloading logs finished. Proceeding with analysis')
+            logger.debug('Commandline: {}'.format(str(cmd)))
+            pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            while True:
+                out = pg_badger.stderr.read(1)
+                if out == '' and pg_badger.poll() is not None:
+                    break
+                if out != '':
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
 
+            email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
 
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
