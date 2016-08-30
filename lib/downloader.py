@@ -131,14 +131,14 @@ def email_result(recipient, attachment):
         ses = boto3.client('ses', region)
         response = ses.send_raw_email(
             Source='ose@recommind.com',
-            Destination={'ToAddresses':
+            Destinations={'ToAddresses':
                              [recipient]
                          },
             RawMessage={'Data': msg}
 
         )
         logger.info('Email send:')
-        logger.debug('email:'.format(str(response)))
+        #logger.debug('email:'.format(str(response)))
 
     except ClientError as e:
         logger.error('Could not sent email: {}'.format(str(e.message)))
