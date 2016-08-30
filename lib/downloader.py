@@ -132,7 +132,7 @@ def email_result(recipient, attachment):
         response = ses.send_raw_email(
             Source='ose@recommind.com',
             Destinations=[recipient],
-            RawMessage={'Data': msg}
+            RawMessage={'Data': str(msg)}
 
         )
         logger.info('Email send:')
