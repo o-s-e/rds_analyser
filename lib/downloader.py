@@ -30,11 +30,10 @@ args = parser.parse_args()
 
 
 def list_rds_log_files(rds_instance, region, date):
-    default_region = 'us-east-1'
     try:
         rds = boto3.client('rds', region)
     except NoRegionError:
-        logger.warn('Using default region: {}'.format(default_region))
+        logger.warn('Using default region: {}'.format(region))
     try:
         response = rds.describe_db_log_files(
             DBInstanceIdentifier=rds_instance,
@@ -47,12 +46,11 @@ def list_rds_log_files(rds_instance, region, date):
 
 def download(log_file, rds_instance, region):
     local_log_file = os.path.basename(log_file)
-    default_region = 'us-east-1'
     try:
         rds = boto3.client('rds', region)
     except NoRegionError:
-        logger.warn('Using default region: {}'.format(default_region))
-        rds = boto3.client('rds', default_region)
+        logger.warn('Using default region: {}'.format(region))
+        rds = boto3.client('rds', region)
     with open(local_log_file, 'w') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
         token = '0'
@@ -76,6 +74,6 @@ def download(log_file, rds_instance, region):
 
 if __name__ == '__main__':
     try:
-        list_rds_log_files(args.rds_instance, args.date)
+        list_rds_log_files(args.rds_instance, args.region, args.date)
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
