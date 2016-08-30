@@ -60,7 +60,7 @@ def download(log_file):
     with open(local_log_file, 'w') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
         token = '0'
-        logger.debug('Init token: {}'.format(str(token)))
+        logger.debug('Logfile: {}. Init token: {}'.format(str(log_file), str(token)))
         try:
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
@@ -70,7 +70,7 @@ def download(log_file):
             while response['AdditionalDataPending']:
                 try:
                     token = response['Marker']
-                    logger.debug('Response token: {}'.format(str(token)))
+                    logger.debug('Logfile: {}. Response token: {}'.format(str(log_file), str(token)))
                     response = rds.download_db_log_file_portion(
                         DBInstanceIdentifier=rds_instance,
                         LogFileName=log_file,
