@@ -67,7 +67,6 @@ def download(log_file):
                 LogFileName=log_file,
                 Marker=token)
             f.write(response['LogFileData'])
-            logger.debug('Response: {}'.format(str(response)))
             while response['AdditionalDataPending']:
                 try:
                     token = response['Marker']
@@ -80,6 +79,8 @@ def download(log_file):
                 except ConnectionError as e:
                     logger.debug('Last token during exception: {}'.format(str(token)))
                     continue
+            else:
+                logger.error('Resopnse sucks: {}'.format(str(response)))
 
         except ClientError as e:
             logger.error(e)
