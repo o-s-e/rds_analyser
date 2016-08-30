@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
 import logging
 import os.path
 import sys
@@ -8,6 +7,7 @@ import argparse
 import boto3
 import time
 from botocore.exceptions import NoRegionError, ClientError
+from concurrent.futures import ThreadPoolExecutor
 
 __author__ = 'ose@recommind.com'
 
@@ -39,6 +39,9 @@ def list_rds_log_files(rds_instance, region, date):
             DBInstanceIdentifier=rds_instance,
             FilenameContains=date)
         logger.debug('RDS logfiles dict: {}'.format(str(response)))
+        logfile_list = map(lambda d: d['LogFileName'], response['DescribeDBLogFiles'])
+        logger.debug('logfile list: {}'.format(str(logfile_list)))
+        return logfile_list
     except ClientError as e:
         logger.error(e)
         sys.exit(2)
@@ -75,5 +78,10 @@ def download(log_file, rds_instance, region):
 if __name__ == '__main__':
     try:
         list_rds_log_files(args.rds_instance, args.region, args.date)
+
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
+
+    executor = ThreadPoolExecutor(max_workers=5)
+    futures = []
+
