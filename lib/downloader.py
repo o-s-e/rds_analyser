@@ -6,7 +6,7 @@ import sys
 import argparse
 import boto3
 import time
-from botocore.exceptions import NoRegionError, ClientError
+from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor as Pool
 
@@ -36,8 +36,8 @@ date = args.date
 def list_rds_log_files():
     try:
         rds = boto3.client('rds', region)
-    except NoRegionError:
-        logger.warn('Using default region: {}'.format(region))
+    except ClientError as e:
+        logger.error(e)
     try:
         response = rds.describe_db_log_files(
             DBInstanceIdentifier=rds_instance,
@@ -55,12 +55,12 @@ def download(log_file):
     local_log_file = os.path.basename(log_file)
     try:
         rds = boto3.client('rds', region)
-    except NoRegionError:
-        logger.warn('Using default region: {}'.format(region))
-        rds = boto3.client('rds', region)
+    except ClientError as e:
+        logger.error(e)
     with open(local_log_file, 'w') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
         token = '0'
+        logger.debug('Init token: {}'.format(str(token)))
         try:
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
@@ -68,12 +68,18 @@ def download(log_file):
                 Marker=token)
             f.write(response['LogFileData'])
             while response['AdditionalDataPending']:
-                token = response['Marker']
-                response = rds.download_db_log_file_portion(
-                    DBInstanceIdentifier=rds_instance,
-                    LogFileName=log_file,
-                    Marker=token)
-                f.write(response['LogFileData'])
+                try:
+                    token = response['Marker']
+                    logger.debug('Response token: {}'.format(str(token)))
+                    response = rds.download_db_log_file_portion(
+                        DBInstanceIdentifier=rds_instance,
+                        LogFileName=log_file,
+                        Marker=token)
+                    f.write(response['LogFileData'])
+                except ConnectionError as e:
+                    logger.debug('Last token during exception: {}'.format(str(token)))
+                    continue
+
         except ClientError as e:
             logger.error(e)
             sys.exit(2)
@@ -90,7 +96,7 @@ if __name__ == '__main__':
                 if future.exception() is not None:
                     logger.error('{} generated an Exception: {}'.format(file, future.exception()))
                 else:
-                    logger.info('{}done: {}'.format(file, future.result()))
+                    logger.info('{}done'.format(file))
 
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
