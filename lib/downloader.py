@@ -80,7 +80,10 @@ def download(log_file):
                     logger.debug('Last token during exception: {}'.format(str(token)))
                     continue
             else:
-                logger.error('Resopnse sucks: {}'.format(str(response)))
+                if not response['AdditionalDataPending']:
+                    logger.info('file {} completed'.format(str(log_file)))
+                else:
+                    logger.error('Response sucks: {}'.format(str(response)))
 
         except ClientError as e:
             logger.error(e)
@@ -98,7 +101,7 @@ if __name__ == '__main__':
                 if future.exception() is not None:
                     logger.error('{} generated an Exception: {}'.format(file, future.exception()))
                 else:
-                    logger.info('{}done'.format(file))
+                    logger.info('done')
 
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
