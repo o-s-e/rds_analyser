@@ -99,7 +99,7 @@ if __name__ == '__main__':
             for future in futures.as_completed(logfile_future):
                 file = logfile_future[future]
                 if future.exception() is not None:
-                    logger.error('{} generated an Exception: {}'.format(file, future.exception()))
+                    logger.error('{} generated an Exception: {}. class: {}'.format(file, future.exception()), future.exception().__class__.__name__)
                 else:
                     logger.info('done')
 
