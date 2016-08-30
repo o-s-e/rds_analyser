@@ -133,10 +133,9 @@ def email_result(recipient, attachment):
             Source='ose@recommind.com',
             Destinations=[recipient],
             RawMessage={'Data': str(msg)}
-
         )
         logger.info('Email send:')
-        #logger.debug('email:'.format(str(response)))
+        logger.debug('email:'.format(str(response)))
 
     except ClientError as e:
         logger.error('Could not sent email: {}'.format(str(e.message)))
