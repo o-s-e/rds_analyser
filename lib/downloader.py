@@ -7,7 +7,8 @@ import argparse
 import boto3
 import time
 from botocore.exceptions import NoRegionError, ClientError
-from concurrent.futures import ProcessPoolExecutor
+from concurrent import futures
+from concurrent.futures import ThreadPoolExecutor as Pool
 
 __author__ = 'ose@recommind.com'
 
@@ -81,8 +82,15 @@ def download(log_file):
 if __name__ == '__main__':
     try:
         logfiles = list_rds_log_files()
-        executor = ProcessPoolExecutor(5)
-        futures = [executor.submit(download(logfile) for logfile in logfiles)]
+        with Pool(max_workers=5) as executor:
+            logfile_future = dict((executor.submit(download, logfile), logfile)
+                                  for logfile in logfiles)
+            for future in futures.as_completed(logfile_future):
+                file = logfile_future[future]
+                if future.exception() is not None:
+                    logger.error('{} generated an Exception: {}'.format(file, future.exception()))
+                else:
+                    logger.info('{}done: {}'.format(file, future.result()))
 
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
