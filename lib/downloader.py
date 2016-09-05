@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import traceback
 import os.path
 import sys
 import glob
