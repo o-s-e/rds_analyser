@@ -1,4 +1,4 @@
- tuple index out of range#!/usr/bin/env python
+#!/usr/bin/env python
 
 import logging
 import os.path
