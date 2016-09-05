@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ tuple index out of range#!/usr/bin/env python
 
 import logging
 import os.path
@@ -163,7 +163,7 @@ if __name__ == '__main__':
                             logger.info('done')
             except Exception as e:
                 logger.error(
-                    'something got wrong: {}. Exceptionclass: {}'.format(str(e.message), str(e.__class__.__name__)))
+                    'something got wrong: {}. Exceptionclass: {}. Traceback: {}'.format(str(e.message), str(e.__class__.__name__), str(traceback.print_stack())))
         else:
             logger.info('nodl switch used, proceed with analysis')
 
