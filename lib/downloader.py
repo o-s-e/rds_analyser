@@ -139,7 +139,7 @@ def email_result(recipient, attachment):
     <html>
       <head>Howdy -- here is the daily PgBadger report from {}</head>
       <body>
-        <p>Here is the pg badger report for db {}.<br>
+        <p>For db {}.<br>
            <br>
 
         </p>
