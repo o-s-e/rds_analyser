@@ -145,7 +145,7 @@ def email_result(recipient, attachment):
 
     part1 = MIMEText(text, 'plain')
     part2 = MIMEText(html, 'html')
-    msg.attach(part1)
+#    msg.attach(part1)
     msg.attach(part2)
 
     part3 = MIMEApplication(open(attachment, 'rb').read())
@@ -222,7 +222,7 @@ if __name__ == '__main__':
             if args.email is None:
                 logger.info('No recipient, no email')
             else:
-                email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
+                email_result(email_recipient, 'postgresql.{}.{}.html'.format(str(rds_instance), str(log_date)))
 
         except Exception as e:
             logger.exception('ups: {}'.format(str(e.message)))
