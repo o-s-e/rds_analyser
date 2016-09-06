@@ -168,52 +168,55 @@ def email_result(recipient, attachment):
 if __name__ == '__main__':
 
     try:
-        if not args.nodl:
-            logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
-                str(cpu_count()), str(parallel_processes)))
-            logfiles = list_rds_log_files()
-            logfiles_retry = 0
+        try:
+            if not args.nodl:
+                logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
+                    str(cpu_count()), str(parallel_processes)))
+                logfiles = list_rds_log_files()
+                logfiles_retry = 0
 
-            try:
-                with Pool(max_workers=int(parallel_processes * 2)) as executor:
-                    logfile_future = dict((executor.submit(download, logfile), logfile)
-                                          for logfile in logfiles)
-                    for future in futures.as_completed(logfile_future):
-                        file_result = logfile_future[future]
-                        if future.exception() is not None:
-                            logger.error(
-                                '{} trowed an Exception: {}. class: {}'.format(file_result, future.exception(),
-                                                                               future.exception().__class__.__name__))
-                            if logfiles_retry < 3:
-                                logfiles_retry += logfiles_retry
-                                logger.info('Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
-                                executor.submit(download, file_result)
-                        else:
-                            logger.info('{} done'.format(str(file_result)))
-            except Exception as e:
-                logger.error(
-                    'something got wrong: {}. Exception class: {}. Traceback: {}'.format(str(e.message),
-                                                                                         str(e.__class__.__name__),
-                                                                                         str(traceback.print_stack())))
-        else:
-            logger.info('nodl switch used, proceed with analysis')
+                try:
+                    with Pool(max_workers=int(parallel_processes * 2)) as executor:
+                        logfile_future = dict((executor.submit(download, logfile), logfile)
+                                              for logfile in logfiles)
+                        for future in futures.as_completed(logfile_future):
+                            file_result = logfile_future[future]
+                            if future.exception() is not None:
+                                logger.error(
+                                    '{} trowed an Exception: {}. class: {}'.format(file_result, future.exception(),
+                                                                                   future.exception().__class__.__name__))
+                                if logfiles_retry < 3:
+                                    logfiles_retry += logfiles_retry
+                                    logger.info('Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
+                                    executor.submit(download, file_result)
+                            else:
+                                logger.info('{} done'.format(str(file_result)))
+                except Exception as e:
+                    logger.error(
+                        'something got wrong: {}. Exception class: {}. Traceback: {}'.format(str(e.message),
+                                                                                             str(e.__class__.__name__),
+                                                                                             str(traceback.print_stack())))
+            else:
+                logger.info('nodl switch used, proceed with analysis')
 
-        logger.info('Proceeding with analysis')
-        logger.debug('Commandline: {}'.format(str(cmd)))
-        pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        while True:
-            logger.debug('test')
-            out = pg_badger.stderr.read(1)
-            if out == '' and pg_badger.poll() is not None:
-                break
-            if out != '':
-                sys.stdout.write(out)
-                sys.stdout.flush()
+            logger.info('Proceeding with analysis')
+            logger.debug('Commandline: {}'.format(str(cmd)))
+            pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            while True:
+                logger.debug('test')
+                out = pg_badger.stderr.read(1)
+                if out == '' and pg_badger.poll() is not None:
+                    break
+                if out != '':
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
 
-        if args.email is None:
-            logger.info('No recipient, no email')
-        else:
-            email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
+            if args.email is None:
+                logger.info('No recipient, no email')
+            else:
+                email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
 
-    except Exception as e:
-        logger.error('ups: {}'.format(str(e.message)))
+        except Exception as e:
+            logger.exception('ups: {}'.format(str(e.message)))
+    except KeyboardInterrupt:
+        sys.exit(2)
