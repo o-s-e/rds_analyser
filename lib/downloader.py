@@ -9,16 +9,22 @@ import argparse
 import boto3
 import time
 import subprocess
+from distutils import spawn
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
-from distutils import spawn
 from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
+from retrying import retry
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 __author__ = 'ose@recommind.com'
+
+
+class RetryError(Exception):
+    pass
+
 
 logger = logging.getLogger('rds_log_downloader')
 logger.setLevel(logging.DEBUG)
@@ -55,6 +61,10 @@ cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}-* -o postgresql.{}.h
                                                                                             str(log_date))
 
 
+def retry_if_error(exception):
+    return isinstance(exception, RetryError)
+
+
 def list_rds_log_files():
     try:
         rds = boto3.client('rds', region)
@@ -73,6 +83,8 @@ def list_rds_log_files():
         sys.exit(2)
 
 
+@retry(retry_on_exception=retry_if_error, stop_max_attempt_number=5, stop_max_delay=30000,
+       wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def download(log_file):
     local_log_file = os.path.basename(log_file)
     try:
@@ -108,8 +120,8 @@ def download(log_file):
                     logger.error('Response sucks: {}'.format(str(response)))
 
         except ClientError as e:
-            logger.error(e)
-            sys.exit(2)
+            logger.error(e.message)
+            raise RetryError
 
 
 def email_result(recipient, attachment):
@@ -174,13 +186,15 @@ if __name__ == '__main__':
                         file_result = logfile_future[future]
                         if future.exception() is not None:
                             logger.error(
-                                '{} generated an Exception: {}. class: {}'.format(file_result, future.exception()),
-                                future.exception().__class__.__name__)
+                                '{} trowed an Exception: {}. class: {}'.format(file_result, future.exception(),
+                                                                               future.exception().__class__.__name__))
                         else:
                             logger.info('done')
             except Exception as e:
                 logger.error(
-                    'something got wrong: {}. Exceptionclass: {}. Traceback: {}'.format(str(e.message), str(e.__class__.__name__), str(traceback.print_stack())))
+                    'something got wrong: {}. Exception class: {}. Traceback: {}'.format(str(e.message),
+                                                                                         str(e.__class__.__name__),
+                                                                                         str(traceback.print_stack())))
         else:
             logger.info('nodl switch used, proceed with analysis')
 
