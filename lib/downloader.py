@@ -190,7 +190,6 @@ def run():
                             executor.submit(download, file_result)
                     else:
                         logger.info('{} done'.format(str(file_result)))
-                    logger.debug('testttt'.format(wait(logfile_future)))
         except Exception as e:
             logger.error(
                 '{}. Exception class: {}. Traceback: {}'.format(str(e.message),
