@@ -109,7 +109,8 @@ def download(log_file):
                     continue
             else:
                 if not response['AdditionalDataPending']:
-                    logger.info('file {} completed'.format(str(log_file)))
+                    logger.debug('file {} completed'.format(str(log_file)))
+                    f.write(response['LogFileData'])
                 else:
                     logger.error('Response sucks: {}'.format(str(response)))
 
