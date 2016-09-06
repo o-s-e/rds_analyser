@@ -120,12 +120,12 @@ def download(log_file):
 
 
 def email_result(recipient, attachment):
-    msg = MIMEMultipart('mixed')
+    msg = MIMEMultipart('alternative')
     msg.set_charset('UTF-8')
     msg['Subject'] = 'Pgpadger report from {}'.format(str(log_date))
     msg['From'] = 'ose@recommind.com'
     msg['To'] = recipient
-    msg.preamble = 'Multipart message.\n'
+    msg.preamble = 'Multipart message.\r\n'
 
     # the message body
     text = 'Howdy -- here is the daily PgBadger report from {}for {}.'.format(str(log_date), str(rds_instance))
@@ -141,9 +141,9 @@ def email_result(recipient, attachment):
     </html>
     """.format(str(log_date), str(rds_instance))
 
-    part1 = MIMEText(text, 'plain', utf-8')
+    part1 = MIMEText(text, 'plain', 'utf-8')
     part2 = MIMEText(html, 'html', 'utf-8')
-#    msg.attach(part1)
+    msg.attach(part1)
     msg.attach(part2)
 
     part3 = MIMEApplication(open(attachment, 'rb').read())
@@ -155,10 +155,10 @@ def email_result(recipient, attachment):
         response = ses.send_raw_email(
             Source=msg['From'],
             Destinations=[msg['To']],
-            RawMessage={'Data': msg.as_string(unixfrom=True)}
+            RawMessage={'Data': msg.as_string()}
         )
         logger.info('Email send:')
-        logger.debug('email:'.format(msg.as_string(unixfrom=True)))
+        logger.debug('email:'.format(str(msg.as_string())))
 
     except ClientError as e:
         logger.error('Could not sent email: {}'.format(str(e.message)))
