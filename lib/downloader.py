@@ -120,13 +120,11 @@ def download(log_file):
 
 
 def email_result(recipient, attachment):
-    msg = MIMEMultipart('alternative')
+    msg = MIMEMultipart('mixed')
     msg.set_charset('UTF-8')
     msg['Subject'] = 'Pgpadger report from {}'.format(str(log_date))
     msg['From'] = 'ose@recommind.com'
     msg['To'] = recipient
-    msg.add_header('Content-Type', 'text/html')
-
     msg.preamble = 'Multipart message.\n'
 
     # the message body
@@ -143,8 +141,8 @@ def email_result(recipient, attachment):
     </html>
     """.format(str(log_date), str(rds_instance))
 
-    part1 = MIMEText(text, 'plain')
-    part2 = MIMEText(html, 'html')
+    part1 = MIMEText(text, 'plain', utf-8')
+    part2 = MIMEText(html, 'html', 'utf-8')
 #    msg.attach(part1)
     msg.attach(part2)
 
@@ -218,7 +216,7 @@ if __name__ == '__main__':
         try:
             run()
             logger.info('Proceeding with analysis')
-            run_external_cmd(cmd)
+#            run_external_cmd(cmd)
             if args.email is None:
                 logger.info('No recipient, no email')
             else:
