@@ -187,7 +187,8 @@ if __name__ == '__main__':
                                                                                    future.exception().__class__.__name__))
                                 if logfiles_retry < 3:
                                     logfiles_retry += 1
-                                    logger.info('Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
+                                    logger.info(
+                                        'Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
                                     executor.submit(download, file_result)
                             else:
                                 logger.info('{} done'.format(str(file_result)))
@@ -195,7 +196,8 @@ if __name__ == '__main__':
                     logger.error(
                         'something got wrong: {}. Exception class: {}. Traceback: {}'.format(str(e.message),
                                                                                              str(e.__class__.__name__),
-                                                                                             str(traceback.print_stack())))
+                                                                                             str(
+                                                                                                 traceback.print_stack())))
             else:
                 logger.info('nodl switch used, proceed with analysis')
 
@@ -219,4 +221,5 @@ if __name__ == '__main__':
         except Exception as e:
             logger.exception('ups: {}'.format(str(e.message)))
     except KeyboardInterrupt:
+        Pool.shutdown()
         sys.exit(2)
