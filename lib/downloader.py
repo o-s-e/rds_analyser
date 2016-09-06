@@ -130,7 +130,7 @@ def email_result(recipient, attachment):
     msg.preamble = 'Multipart message.\n'
 
     # the message body
-    text = 'Howdy -- here is the daily PgBadger report from {}.'.format(str(log_date))
+    text = 'Howdy -- here is the daily PgBadger report from {}for {}.'.format(str(log_date), str(rds_instance))
     html = """\
     <html>
       <head>Howdy -- here is the daily PgBadger report from {}</head>
@@ -149,7 +149,8 @@ def email_result(recipient, attachment):
     msg.attach(part2)
 
     part3 = MIMEApplication(open(attachment, 'rb').read())
-    part3.add_header('Content-Disposition', 'attachment', filename='postgresql.{}.html'.format(str(log_date)))
+    part3.add_header('Content-Disposition', 'attachment',
+                     filename='postgresql.{}.{}.html'.format(str(rds_instance), str(log_date)))
     msg.attach(part3)
     try:
         ses = boto3.client('ses', region)
