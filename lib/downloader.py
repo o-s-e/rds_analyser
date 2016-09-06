@@ -199,21 +199,21 @@ if __name__ == '__main__':
         else:
             logger.info('nodl switch used, proceed with analysis')
 
-        logger.info('Proceeding with analysis')
-        logger.debug('Commandline: {}'.format(str(cmd)))
-        pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        while True:
-            out = pg_badger.stderr.read(1)
-            if out == '' and pg_badger.poll() is not None:
-                break
-            if out != '':
-                sys.stdout.write(out)
-                sys.stdout.flush()
-
-        if args.email is None:
-            logger.info('No recipient, no email')
-        else:
-            email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
-
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
+
+    logger.info('Proceeding with analysis')
+    logger.debug('Commandline: {}'.format(str(cmd)))
+    pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    while True:
+        out = pg_badger.stderr.read(1)
+        if out == '' and pg_badger.poll() is not None:
+            break
+        if out != '':
+            sys.stdout.write(out)
+            sys.stdout.flush()
+
+    if args.email is None:
+        logger.info('No recipient, no email')
+    else:
+        email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
