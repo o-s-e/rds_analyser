@@ -55,9 +55,10 @@ if pg_badger_path is None:
     sys.exit('Please install pgbadger')
 
 logger.debug('Path: {}'.format(str(pg_badger_path)))
-cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}-* -o postgresql.{}.html".format(str(pg_badger_path),
+cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}-* -o postgresql.{}.{}.html".format(str(pg_badger_path),
                                                                                             str(parallel_processes),
                                                                                             str(log_date),
+                                                                                            str(rds_instance),
                                                                                             str(log_date))
 
 
