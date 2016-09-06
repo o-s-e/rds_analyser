@@ -17,6 +17,7 @@ from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor as Pool
+from concurrent.futures import wait
 
 __author__ = 'ose@recommind.com'
 
@@ -113,7 +114,6 @@ def download(log_file):
                     f.write(response['LogFileData'])
                 else:
                     logger.error('Response sucks: {}'.format(str(response)))
-
         except ClientError as e:
             logger.error(e.message)
             raise RetryError
@@ -166,52 +166,61 @@ def email_result(recipient, attachment):
         logger.error('Could not sent email: {}'.format(str(e.message)))
 
 
+def run():
+    if not args.nodl:
+        logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
+            str(cpu_count()), str(parallel_processes)))
+        logfiles = list_rds_log_files()
+        try:
+            with Pool(max_workers=int(parallel_processes * 2)) as executor:
+                logfile_future = dict((executor.submit(download, logfile), logfile)
+                                      for logfile in logfiles)
+                for future in futures.as_completed(logfile_future):
+                    logfiles_retry = 0
+                    file_result = logfile_future[future]
+                    if future.exception() is not None:
+                        logger.error(
+                            '{} failed with an Exception: {}. class: {}'.format(
+                                file_result, future.exception(),
+                                future.exception().__class__.__name__))
+                        if logfiles_retry < 3:
+                            logfiles_retry += 1
+                            logger.info(
+                                'Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
+                            executor.submit(download, file_result)
+                    else:
+                        logger.info('{} done'.format(str(file_result)))
+                    logger.debug('testttt'.format(wait(logfile_future)))
+        except Exception as e:
+            logger.error(
+                '{}. Exception class: {}. Traceback: {}'.format(str(e.message),
+                                                                str(e.__class__.__name__),
+                                                                str(
+                                                                    traceback.print_stack())))
+    else:
+        logger.info('nodl switch used, proceed with analysis')
+
+
+def run_external_cmd(commandline):
+    logger.debug('Commandline: {}'.format(str(commandline)))
+    pg_badger = subprocess.Popen(commandline, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    while True:
+        out = pg_badger.stderr.read(1)
+        if out == '' and pg_badger.poll() is not None:
+            break
+        if out != '':
+            sys.stdout.write(out)
+            sys.stdout.flush()
+
+
 if __name__ == '__main__':
 
     try:
         try:
-            if not args.nodl:
-                logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
-                    str(cpu_count()), str(parallel_processes)))
-                logfiles = list_rds_log_files()
-                try:
-                    with Pool(max_workers=int(parallel_processes * 2)) as executor:
-                        logfile_future = dict((executor.submit(download, logfile), logfile)
-                                              for logfile in logfiles)
-                        for future in futures.as_completed(logfile_future):
-                            logfiles_retry = 0
-                            file_result = logfile_future[future]
-                            if future.exception() is not None:
-                                logger.error(
-                                    '{} trowed an Exception: {}. class: {}'.format(file_result, future.exception(),
-                                                                                   future.exception().__class__.__name__))
-                                if logfiles_retry < 3:
-                                    logfiles_retry += 1
-                                    logger.info(
-                                        'Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
-                                    executor.submit(download, file_result)
-                            else:
-                                logger.info('{} done'.format(str(file_result)))
-                except Exception as e:
-                    logger.error(
-                        'something got wrong: {}. Exception class: {}. Traceback: {}'.format(str(e.message),
-                                                                                             str(e.__class__.__name__),
-                                                                                             str(
-                                                                                                 traceback.print_stack())))
-            else:
-                logger.info('nodl switch used, proceed with analysis')
+            run()
 
             logger.info('Proceeding with analysis')
-            logger.debug('Commandline: {}'.format(str(cmd)))
-            pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            while True:
-                out = pg_badger.stderr.read(1)
-                if out == '' and pg_badger.poll() is not None:
-                    break
-                if out != '':
-                    sys.stdout.write(out)
-                    sys.stdout.flush()
-
+            run_external_cmd(cmd)
             if args.email is None:
                 logger.info('No recipient, no email')
             else:
@@ -220,5 +229,4 @@ if __name__ == '__main__':
         except Exception as e:
             logger.exception('ups: {}'.format(str(e.message)))
     except KeyboardInterrupt:
-        Pool.shutdown()
         sys.exit(2)
