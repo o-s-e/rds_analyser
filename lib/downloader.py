@@ -16,7 +16,6 @@ from email.mime.multipart import MIMEMultipart
 from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
-from retrying import retry
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 __author__ = 'ose@recommind.com'
@@ -56,14 +55,10 @@ if pg_badger_path is None:
 
 logger.debug('Path: {}'.format(str(pg_badger_path)))
 cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}-* -o postgresql.{}.{}.html".format(str(pg_badger_path),
-                                                                                            str(parallel_processes),
-                                                                                            str(log_date),
-                                                                                            str(rds_instance),
-                                                                                            str(log_date))
-
-
-def retry_if_error(exception):
-    return isinstance(exception, RetryError)
+                                                                                               str(parallel_processes),
+                                                                                               str(log_date),
+                                                                                               str(rds_instance),
+                                                                                               str(log_date))
 
 
 def list_rds_log_files():
@@ -84,8 +79,6 @@ def list_rds_log_files():
         sys.exit(2)
 
 
-@retry(retry_on_exception=retry_if_error, stop_max_attempt_number=5, stop_max_delay=30000,
-       wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def download(log_file):
     local_log_file = os.path.basename(log_file)
     try:
@@ -179,6 +172,7 @@ if __name__ == '__main__':
             logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
                 str(cpu_count()), str(parallel_processes)))
             logfiles = list_rds_log_files()
+            logfiles_count = len(logfiles)
             try:
                 with Pool(max_workers=int(parallel_processes * 2)) as executor:
                     logfile_future = dict((executor.submit(download, logfile), logfile)
@@ -189,7 +183,8 @@ if __name__ == '__main__':
                             logger.error(
                                 '{} trowed an Exception: {}. class: {}'.format(file_result, future.exception(),
                                                                                future.exception().__class__.__name__))
-                        else:
+                            logger.info('Retrying: {}'.format(str(file_result)))
+                            executor.submit(download, file_result)
                             logger.info('done')
             except Exception as e:
                 logger.error(
@@ -199,21 +194,22 @@ if __name__ == '__main__':
         else:
             logger.info('nodl switch used, proceed with analysis')
 
+        logger.info('Proceeding with analysis')
+        logger.debug('Commandline: {}'.format(str(cmd)))
+        pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        while True:
+            logger.debug('test')
+            out = pg_badger.stderr.read(1)
+            if out == '' and pg_badger.poll() is not None:
+                break
+            if out != '':
+                sys.stdout.write(out)
+                sys.stdout.flush()
+
+        if args.email is None:
+            logger.info('No recipient, no email')
+        else:
+            email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
+
     except Exception as e:
         logger.error('ups: {}'.format(str(e.message)))
-
-    logger.info('Proceeding with analysis')
-    logger.debug('Commandline: {}'.format(str(cmd)))
-    pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    while True:
-        out = pg_badger.stderr.read(1)
-        if out == '' and pg_badger.poll() is not None:
-            break
-        if out != '':
-            sys.stdout.write(out)
-            sys.stdout.flush()
-
-    if args.email is None:
-        logger.info('No recipient, no email')
-    else:
-        email_result(email_recipient, 'postgresql.{}.html'.format(str(log_date)))
