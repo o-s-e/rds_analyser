@@ -53,9 +53,9 @@ pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
 
 if args.cron is False:
-    log_date = args.date
+    log_date = str(args.date)
 else:
-    log_date = yesterday
+    log_date = str(yesterday)
 
 if pg_badger_path is None:
     sys.exit('Please install pgbadger')
