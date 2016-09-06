@@ -205,7 +205,6 @@ if __name__ == '__main__':
             logger.debug('Commandline: {}'.format(str(cmd)))
             pg_badger = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             while True:
-                logger.debug('test')
                 out = pg_badger.stderr.read(1)
                 if out == '' and pg_badger.poll() is not None:
                     break
