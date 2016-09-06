@@ -186,7 +186,7 @@ if __name__ == '__main__':
                                     '{} trowed an Exception: {}. class: {}'.format(file_result, future.exception(),
                                                                                    future.exception().__class__.__name__))
                                 if logfiles_retry < 3:
-                                    logfiles_retry += logfiles_retry
+                                    logfiles_retry += 1
                                     logger.info('Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
                                     executor.submit(download, file_result)
                             else:
