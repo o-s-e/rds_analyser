@@ -7,7 +7,7 @@ import sys
 import glob
 import argparse
 import boto3
-import time
+from datetime import timedelta, date
 import subprocess
 from distutils import spawn
 from email.mime.text import MIMEText
@@ -34,7 +34,8 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 parallel_processes = int(cpu_count()) + 1
-today = time.strftime("%Y-%m-%d")
+today = date.today()
+yesterday = today - timedelta(1)
 
 parser = argparse.ArgumentParser(description='Simplistic RDS logfile '
                                              'downloader')
@@ -43,13 +44,18 @@ parser.add_argument('--rds-instance', required=True, help='The RDS name')
 parser.add_argument('--date', default=today, help='define the date')
 parser.add_argument('--email', default=None, help='define the email recipient')
 parser.add_argument('--nodl', default=False, help='do not download, because the files are already there')
+parser.add_argument('--cron', default=False, help='Only for cron usage, sets date to yesterday')
 
 args = parser.parse_args()
 region = args.region
 rds_instance = args.rds_instance
-log_date = args.date
 pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
+
+if args.cron is False:
+    log_date = args.date
+else:
+    log_date = yesterday
 
 if pg_badger_path is None:
     sys.exit('Please install pgbadger')
@@ -157,7 +163,7 @@ def email_result(recipient, attachment):
             Destinations=[msg['To']],
             RawMessage={'Data': msg.as_string()}
         )
-        logger.info('Email send:')
+        logger.info('Email send:'.format(str(response)))
         logger.debug('email:'.format(str(msg.as_string())))
 
     except ClientError as e:
@@ -216,7 +222,7 @@ if __name__ == '__main__':
         try:
             run()
             logger.info('Proceeding with analysis')
-#            run_external_cmd(cmd)
+            #            run_external_cmd(cmd)
             if args.email is None:
                 logger.info('No recipient, no email')
             else:
