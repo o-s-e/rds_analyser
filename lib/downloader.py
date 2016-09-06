@@ -151,16 +151,15 @@ def email_result(recipient, attachment):
     part3 = MIMEApplication(open(attachment, 'rb').read())
     part3.add_header('Content-Disposition', 'attachment', filename='postgresql.{}.html'.format(str(log_date)))
     msg.attach(part3)
-
     try:
         ses = boto3.client('ses', region)
         response = ses.send_raw_email(
             Source=msg['From'],
             Destinations=[msg['To']],
-            RawMessage={'Data': str(msg)}
+            RawMessage={'Data': msg.as_string(unixfrom=True)}
         )
         logger.info('Email send:')
-        logger.debug('email:'.format(str(response)))
+        logger.debug('email:'.format(msg.as_string(unixfrom=True)))
 
     except ClientError as e:
         logger.error('Could not sent email: {}'.format(str(e.message)))
@@ -190,7 +189,6 @@ def run():
                             executor.submit(download, file_result)
                     else:
                         logger.info('{} done'.format(str(file_result)))
-                    logger.debug('testttt'.format(wait(logfile_future)))
         except Exception as e:
             logger.error(
                 '{}. Exception class: {}. Traceback: {}'.format(str(e.message),
@@ -203,10 +201,10 @@ def run():
 
 def run_external_cmd(commandline):
     logger.debug('Commandline: {}'.format(str(commandline)))
-    pg_badger = subprocess.Popen(commandline, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    shell = subprocess.Popen(commandline, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while True:
-        out = pg_badger.stderr.read(1)
-        if out == '' and pg_badger.poll() is not None:
+        out = shell.stderr.read(1)
+        if out == '' and shell.poll() is not None:
             break
         if out != '':
             sys.stdout.write(out)
@@ -218,7 +216,6 @@ if __name__ == '__main__':
     try:
         try:
             run()
-
             logger.info('Proceeding with analysis')
             run_external_cmd(cmd)
             if args.email is None:
