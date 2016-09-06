@@ -172,7 +172,8 @@ if __name__ == '__main__':
             logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
                 str(cpu_count()), str(parallel_processes)))
             logfiles = list_rds_log_files()
-            logfiles_count = len(logfiles)
+            logfiles_retry = 0
+
             try:
                 with Pool(max_workers=int(parallel_processes * 2)) as executor:
                     logfile_future = dict((executor.submit(download, logfile), logfile)
@@ -183,9 +184,12 @@ if __name__ == '__main__':
                             logger.error(
                                 '{} trowed an Exception: {}. class: {}'.format(file_result, future.exception(),
                                                                                future.exception().__class__.__name__))
-                            logger.info('Retrying: {}'.format(str(file_result)))
-                            executor.submit(download, file_result)
-                            logger.info('done')
+                            if logfiles_retry < 3:
+                                logfiles_retry += logfiles_retry
+                                logger.info('Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
+                                executor.submit(download, file_result)
+                        else:
+                            logger.info('{} done'.format(str(file_result)))
             except Exception as e:
                 logger.error(
                     'something got wrong: {}. Exception class: {}. Traceback: {}'.format(str(e.message),
