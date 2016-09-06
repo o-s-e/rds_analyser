@@ -173,13 +173,12 @@ if __name__ == '__main__':
                 logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
                     str(cpu_count()), str(parallel_processes)))
                 logfiles = list_rds_log_files()
-                logfiles_retry = 0
-
                 try:
                     with Pool(max_workers=int(parallel_processes * 2)) as executor:
                         logfile_future = dict((executor.submit(download, logfile), logfile)
                                               for logfile in logfiles)
                         for future in futures.as_completed(logfile_future):
+                            logfiles_retry = 0
                             file_result = logfile_future[future]
                             if future.exception() is not None:
                                 logger.error(
