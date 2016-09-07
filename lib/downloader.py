@@ -4,11 +4,11 @@ import logging
 import traceback
 import os
 import sys
-import glob
 import argparse
 import boto3
 from datetime import timedelta, date
 import subprocess
+from logging.handlers import SysLogHandler
 from distutils import spawn
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -17,7 +17,6 @@ from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor as Pool
-from concurrent.futures import wait
 
 __author__ = 'ose@recommind.com'
 
@@ -33,10 +32,10 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 console.setFormatter(formatter)
 logger.addHandler(console)
 
-file_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(workdir, 'download_rds_logfile'), 'M', 1, 5)
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+syslog = SysLogHandler(address='/dev/log')
+syslog.setLevel(logging.DEBUG)
+syslog.setFormatter(formatter)
+logger.addHandler(syslog)
 
 parallel_processes = int(cpu_count()) + 1
 today = date.today()
@@ -50,7 +49,7 @@ parser.add_argument('--date', default=today, help='define the date')
 parser.add_argument('--email', default=None, help='define the email recipient')
 parser.add_argument('--nodl', default=False, help='do not download, because the files are already there')
 parser.add_argument('--cron', default=False, help='Only for cron usage, sets date to yesterday')
-parser.add_arrgument('--workdir', default=script_location, help='Define the working dir')
+parser.add_argument('--workdir', default=script_location, help='Define the working dir')
 
 args = parser.parse_args()
 region = args.region
@@ -68,13 +67,14 @@ if pg_badger_path is None:
     sys.exit('Please install pgbadger')
 
 logger.debug('Path: {}'.format(str(pg_badger_path)))
-cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' {}/postgresql.log.{}-* -o {}/postgresql.{}.{}.html".format(str(pg_badger_path),
-                                                                                               str(parallel_processes),
-                                                                                               str(workdir),
-                                                                                               str(log_date),
-                                                                                               str(workdir),
-                                                                                               str(rds_instance),
-                                                                                               str(log_date))
+cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' {}/postgresql.log.{}-* -o {}/postgresql.{}.{}.html".format(
+    str(pg_badger_path),
+    str(parallel_processes),
+    str(workdir),
+    str(log_date),
+    str(workdir),
+    str(rds_instance),
+    str(log_date))
 
 
 def list_rds_log_files():
@@ -96,7 +96,7 @@ def list_rds_log_files():
 
 
 def download(log_file):
-    local_log_file = os.path.join(workdir, logfile)
+    local_log_file = os.path.join(workdir, log_file)
     try:
         rds = boto3.client('rds', region)
     except ClientError as e:
@@ -170,7 +170,7 @@ def email_result(recipient, attachment):
         ses = boto3.client('ses', region)
         response = ses.send_raw_email(
             Source=msg['From'],
-            Destinations= recipient_list,
+            Destinations=recipient_list,
             RawMessage={'Data': msg.as_string()}
         )
         logger.info('Email send:'.format(str(response)))
@@ -236,7 +236,8 @@ if __name__ == '__main__':
             if args.email is None:
                 logger.info('No recipient, no email')
             else:
-                email_result(email_recipient, 'postgresql.{}.{}.html'.format(str(rds_instance), str(log_date)))
+                email_result(email_recipient,
+                             os.path.join(workdir, 'postgresql.{}.{}.html'.format(str(rds_instance), str(log_date))))
 
         except Exception as e:
             logger.exception('ups: {}'.format(str(e.message)))
