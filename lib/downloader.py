@@ -2,7 +2,7 @@
 
 import logging
 import traceback
-import os.path
+import os
 import sys
 import glob
 import argparse
@@ -28,15 +28,20 @@ class RetryError(Exception):
 
 logger = logging.getLogger('rds_log_downloader')
 logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
+console = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+console.setFormatter(formatter)
+logger.addHandler(console)
+
+file_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(workdir, 'download_rds_logfile'), 'M', 1, 5)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 parallel_processes = int(cpu_count()) + 1
 today = date.today()
 yesterday = today - timedelta(1)
-
+script_location = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser(description='Simplistic RDS logfile '
                                              'downloader')
 parser.add_argument('--region', default='us-east-1')
@@ -45,12 +50,14 @@ parser.add_argument('--date', default=today, help='define the date')
 parser.add_argument('--email', default=None, help='define the email recipient')
 parser.add_argument('--nodl', default=False, help='do not download, because the files are already there')
 parser.add_argument('--cron', default=False, help='Only for cron usage, sets date to yesterday')
+parser.add_arrgument('--workdir', default=script_location, help='Define the working dir')
 
 args = parser.parse_args()
 region = args.region
 rds_instance = args.rds_instance
 pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
+workdir = args.workdir
 
 if args.cron is False:
     log_date = str(args.date)
@@ -61,9 +68,11 @@ if pg_badger_path is None:
     sys.exit('Please install pgbadger')
 
 logger.debug('Path: {}'.format(str(pg_badger_path)))
-cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' postgresql.log.{}-* -o postgresql.{}.{}.html".format(str(pg_badger_path),
+cmd = "{} -v -j {} -p '%t:%r:%u@%d:[%p]:' {}/postgresql.log.{}-* -o {}/postgresql.{}.{}.html".format(str(pg_badger_path),
                                                                                                str(parallel_processes),
+                                                                                               str(workdir),
                                                                                                str(log_date),
+                                                                                               str(workdir),
                                                                                                str(rds_instance),
                                                                                                str(log_date))
 
@@ -87,7 +96,7 @@ def list_rds_log_files():
 
 
 def download(log_file):
-    local_log_file = os.path.basename(log_file)
+    local_log_file = os.path.join(workdir, logfile)
     try:
         rds = boto3.client('rds', region)
     except ClientError as e:
