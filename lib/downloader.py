@@ -40,7 +40,6 @@ logger.addHandler(syslog)
 parallel_processes = int(cpu_count()) + 1
 today = date.today()
 yesterday = today - timedelta(1)
-script_location = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser(description='Simplistic RDS logfile '
                                              'downloader')
 parser.add_argument('--region', default='us-east-1')
@@ -49,7 +48,7 @@ parser.add_argument('--date', default=today, help='define the date')
 parser.add_argument('--email', default=None, help='define the email recipient')
 parser.add_argument('--nodl', default=False, help='do not download, because the files are already there')
 parser.add_argument('--cron', default=False, help='Only for cron usage, sets date to yesterday')
-parser.add_argument('--workdir', default=script_location, help='Define the working dir')
+parser.add_argument('--workdir', default=os.getcwd(), help='Define the working dir')
 
 args = parser.parse_args()
 region = args.region
