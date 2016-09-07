@@ -95,7 +95,7 @@ def list_rds_log_files():
 
 
 def download(log_file):
-    local_log_file = os.path.join(workdir, log_file)
+    local_log_file = os.path.join(workdir, str(log_file).replace('\/', '_'))
     try:
         rds = boto3.client('rds', region)
     except ClientError as e:
