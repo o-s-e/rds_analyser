@@ -109,13 +109,15 @@ def download(log_file, token='0'):
             os.remove(local_log_file)
     except IOError as e:
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
-    retries = 0
     if int(token) > 0:
         pool_state[log_file] += 1
-        logger.info('This is retry # {}'.format(str(pool_state[log_file])))
-    if pool_state[log_file] > 5:
-        fatal_logs.append(log_file)
-        logger.fatal('Could not completely download file{}'.format(str(log_file)))
+        if pool_state[log_file] > 5:
+            fatal_logs.append(log_file)
+            logger.fatal('Could not completely download file{}'.format(str(log_file)))
+        else:
+            logger.info('This is retry # {}'.format(str(pool_state[log_file])))
+    else:
+        pool_state[log_file] = 0
 
     with open(local_log_file, 'a') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
@@ -213,11 +215,9 @@ def run():
                     file_result = logfile_future[future]
                     if future.exception() is not None:
                         logger.error('{} failed with an Exception: {}.'.format(file_result, future.exception()))
-                        logger.info('Retrying, time : {}, token: {}'.format(str(file_result), str(future.exception())))
                         if future.exception() == 'fatal':
                             logger.fatal('{} will be skipped'.format(str(file_result)))
                         else:
-                            logger.warn('Retry for {}'.format(str(file_result)))
                             executor.submit(download, file_result, str(future.exception()))
                     else:
                         logger.info('{} done'.format(str(file_result)))
