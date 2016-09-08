@@ -97,19 +97,21 @@ def list_rds_log_files():
 
 
 def download(log_file, token='0'):
+    logger.debug('Token = {}'.format(str(token)))
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug(local_log_file)
     try:
         if token == '0' and os.path.exists(local_log_file):
+            logger.debug('Removing old logfile: {}'.format(str(local_log_file)))
             os.remove(local_log_file)
     except IOError as e:
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
 
     with open(local_log_file, 'a') as f:
-        rds = boto3.client('rds', region)
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
         # logger.debug('Logfile: {}. Init token: {}'.format(str(log_file), str(token)))
         try:
+            rds = boto3.client('rds', region)
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
                 LogFileName=log_file,
