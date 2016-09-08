@@ -106,11 +106,9 @@ def download(log_file, token='0'):
             os.remove(local_log_file)
     except IOError as e:
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
-    try:
-        rds = boto3.client('rds', region)
-    except ClientError as e:
-        logger.error(e)
+
     with open(local_log_file, 'a') as f:
+        rds = boto3.client('rds', region)
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
         # logger.debug('Logfile: {}. Init token: {}'.format(str(log_file), str(token)))
         try:
