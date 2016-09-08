@@ -98,7 +98,7 @@ def list_rds_log_files():
         sys.exit(2)
 
 
-def download(log_file, token=0):
+def download(log_file, token='0'):
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug(local_log_file)
     try:
