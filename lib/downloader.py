@@ -117,7 +117,9 @@ def download(log_file, token=0):
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
                 LogFileName=log_file,
-                Marker=token)
+                Marker=token,
+                NumberOfLines=1000
+            )
             f.write(response['LogFileData'])
             while response['AdditionalDataPending']:
                 try:
@@ -126,7 +128,9 @@ def download(log_file, token=0):
                     response = rds.download_db_log_file_portion(
                         DBInstanceIdentifier=rds_instance,
                         LogFileName=log_file,
-                        Marker=token)
+                        Marker=token,
+                        NumberOfLines=1000
+                    )
                     f.write(response['LogFileData'])
                 except ConnectionError as e:
                     logger.debug('Last token during exception: {}'.format(str(token)))
