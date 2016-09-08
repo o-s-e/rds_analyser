@@ -23,11 +23,11 @@ __author__ = 'ose@recommind.com'
 
 class RetryError(Exception):
     def __init__(self, token):
-        self.token = token
+        self.token = str(token)
 
 
 logger = logging.getLogger('rds_log_downloader')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 console = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console.setFormatter(formatter)
@@ -101,7 +101,7 @@ def list_rds_log_files():
 def download(log_file, token=0):
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug(local_log_file)
-    if token == 0:
+    if token == '0':
         os.remove(local_log_file)
     try:
         rds = boto3.client('rds', region)
@@ -206,7 +206,7 @@ def run():
                             logfiles_retry += 1
                             logger.info(
                                 'Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
-                            executor.submit(download, file_result, int(future.exception.token))
+                            executor.submit(download, file_result, str(future.exception.token))
                     else:
                         logger.info('{} done'.format(str(file_result)))
         except Exception as e:
