@@ -213,7 +213,11 @@ def run():
                     if future.exception() is not None:
                         logger.error('{} failed with an Exception: {}.'.format(file_result, future.exception()))
                         logger.info('Retrying, time : {}, token: {}'.format(str(file_result), str(future.exception())))
-                        executor.submit(download, file_result, str(future.exception()))
+                        if future.exception() == 'fatal':
+                            logger.fatal('{} will be skipped'.format(str(file_result)))
+                        else:
+                            logger.warn('Retry for {}'.format(str(file_result)))
+                            executor.submit(download, file_result, str(future.exception()))
                     else:
                         logger.info('{} done'.format(str(file_result)))
         except Exception as e:
