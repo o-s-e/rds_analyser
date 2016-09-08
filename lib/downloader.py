@@ -16,7 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
-from concurrent.futures import ProcessPoolExecutor as Pool
+from concurrent.futures import ThreadPoolExecutor as Pool
 
 __author__ = 'ose@recommind.com'
 
@@ -206,6 +206,7 @@ def run():
                 for future in futures.as_completed(logfile_future):
                     file_result = logfile_future[future]
                     try:
+                        logger.debug('poolsize before exception: {}'.format(executor._work_queue.qsize()))
                         if future.exception() is not None:
                             logger.error(
                                 '{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
@@ -215,7 +216,9 @@ def run():
                             executor.submit(download, file_result, str(future.exception()))
                     except Exception as e:
                         logger.debug('just a test {}. Message: {}.'.format(str(e.__class__.__name__), str(e.message)))
+                        logger.debug('poolsize after exception: {}'.format(executor._work_queue.qsize()))
                         logger.exception('Pool traceback')
+                        continue
 
         except Exception as e:
             logger.error('{}. Exception class: {}. Traceback: {}'.format(str(e.message),
