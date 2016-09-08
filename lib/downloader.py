@@ -25,9 +25,6 @@ class RetryError(Exception):
     def __init__(self, token):
         self.token = token
 
-    def __str__(self):
-        return repr(self.token)
-
 
 logger = logging.getLogger('rds_log_downloader')
 logger.setLevel(logging.DEBUG)
@@ -208,18 +205,15 @@ def run():
                     logfiles_retry = 0
                     file_result = logfile_future[future]
                     if future.exception() is not None:
-                        logger.error(
-                            '{} failed with an Exception: {}. class: {}'.format(
-                                file_result, future.exception(),
-                                future.exception().__class__.__name__))
+                        logger.error('{} failed with an Exception: {}.'.format(file_result, future.exception()))
                         if logfiles_retry < 3:
                             logfiles_retry += 1
                             logger.info('Retrying the {}, time : {}, token: {}'.format(str(logfiles_retry),
                                                                                        str(file_result),
-                                                                                       str(future.exception.token)
+                                                                                       str(future.exception().token)
                                                                                        )
                                         )
-                            executor.submit(download, file_result, str(future.exception.token))
+                            executor.submit(download, file_result, str(future.exception().token))
                     else:
                         logger.info('{} done'.format(str(file_result)))
         except Exception as e:
