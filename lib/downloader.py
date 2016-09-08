@@ -23,7 +23,10 @@ __author__ = 'ose@recommind.com'
 
 class RetryError(Exception):
     def __init__(self, token):
-        self.token = str(token)
+        self.token = token
+
+    def __str__(self):
+        return repr(self.token)
 
 
 logger = logging.getLogger('rds_log_downloader')
@@ -132,7 +135,7 @@ def download(log_file, token='0'):
                     f.write(response['LogFileData'])
                 except ConnectionError as e:
                     logger.debug('Last token during exception: {}'.format(str(token)))
-                    raise RetryError('Retry', token)
+                    raise RetryError(token)
             else:
                 if not response['AdditionalDataPending']:
                     logger.debug('file {} completed'.format(str(log_file)))
@@ -140,8 +143,8 @@ def download(log_file, token='0'):
                 else:
                     logger.error('Response sucks: {}'.format(str(response)))
         except ClientError as e:
-            logger.error(e.message)
-            raise RetryError('Retry', token)
+            logger.error('ClientError: {}'.format(str(e.message)))
+            raise RetryError(token)
 
 
 def email_result(recipient, attachment):
@@ -192,8 +195,10 @@ def email_result(recipient, attachment):
 
 def run():
     if not args.nodl:
-        logger.info('Running parallel rds log file download on {} cores with {} processes'.format(
-            str(cpu_count()), str(parallel_processes)))
+        logger.info('Running parallel log file download on {} cores with {} processes'.format(str(cpu_count()),
+                                                                                              str(parallel_processes)
+                                                                                              )
+                    )
         logfiles = list_rds_log_files()
         try:
             with Pool(max_workers=int(parallel_processes * 2)) as executor:
@@ -209,9 +214,11 @@ def run():
                                 future.exception().__class__.__name__))
                         if logfiles_retry < 3:
                             logfiles_retry += 1
-                            logger.info(
-                                'Retrying the {}, time : {}, token: {}'.format(str(logfiles_retry), str(file_result),
-                                                                               str(future.exception.token)))
+                            logger.info('Retrying the {}, time : {}, token: {}'.format(str(logfiles_retry),
+                                                                                       str(file_result),
+                                                                                       str(future.exception.token)
+                                                                                       )
+                                        )
                             executor.submit(download, file_result, str(future.exception.token))
                     else:
                         logger.info('{} done'.format(str(file_result)))
@@ -219,8 +226,9 @@ def run():
             logger.error(
                 '{}. Exception class: {}. Traceback: {}'.format(str(e.message),
                                                                 str(e.__class__.__name__),
-                                                                str(
-                                                                    traceback.print_stack())))
+                                                                str(traceback.print_stack())
+                                                                )
+            )
     else:
         logger.info('nodl switch used, proceed with analysis')
 
