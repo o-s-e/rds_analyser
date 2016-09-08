@@ -57,6 +57,7 @@ pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
 workdir = os.path.join(args.workdir, rds_instance)
 fatal_logs = []
+pool_state = {}
 
 if not os.path.exists(workdir):
     os.makedirs(workdir, 0755)
@@ -110,9 +111,9 @@ def download(log_file, token='0'):
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
     retries = 0
     if int(token) > 0:
-        retries += 1
-        logger.info('This is retry # {}'.format(str(token)))
-    if int(token) > 5:
+        pool_state[log_file] += 1
+        logger.info('This is retry # {}'.format(str(pool_state[log_file])))
+    if pool_state[log_file] > 5:
         fatal_logs.append(log_file)
         logger.fatal('Could not completely download file{}'.format(str(log_file)))
 
