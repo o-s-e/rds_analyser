@@ -100,7 +100,6 @@ def list_rds_log_files():
 
 
 def download(log_file, token='0'):
-    logger.debug(pool_state)
     logger.debug('Token = {}'.format(str(token)))
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug(local_log_file)
@@ -110,15 +109,6 @@ def download(log_file, token='0'):
             os.remove(local_log_file)
     except IOError as e:
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
-    if int(token) > 0:
-        pool_state[log_file] += 1
-        if pool_state[log_file] > 5:
-            fatal_logs.append(log_file)
-            logger.fatal('Could not completely download file{}'.format(str(log_file)))
-        else:
-            logger.info('This is retry # {}'.format(str(pool_state[log_file])))
-    else:
-        pool_state[log_file] = 1
 
     with open(local_log_file, 'a') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
@@ -212,17 +202,20 @@ def run():
             with Pool(max_workers=int(parallel_processes * 3)) as executor:
                 logfile_future = dict((executor.submit(download, logfile), logfile)
                                       for logfile in logfiles)
+
                 for future in futures.as_completed(logfile_future):
                     file_result = logfile_future[future]
-                    if future.exception() is not None:
-                        logger.error('{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
-                        if future.exception() == 'fatal':
-                            logger.fatal('{} will be skipped'.format(str(file_result)))
-                        else:
+                    try:
+                        if future.exception() is not None:
+                            logger.error(
+                                '{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
                             logger.dubug('retry in Pool')
                             executor.submit(download, file_result, str(future.exception()))
-                    else:
-                        logger.info('{} done'.format(str(file_result)))
+                        else:
+                            logger.info('{} done'.format(str(file_result)))
+                    except Exception as e:
+                        logger.debug('just a test')
+
         except Exception as e:
             logger.error('{}. Exception class: {}. Traceback: {}'.format(str(e.message),
                                                                          str(e.__class__.__name__),
