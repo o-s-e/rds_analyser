@@ -217,12 +217,11 @@ def run():
                     else:
                         logger.info('{} done'.format(str(file_result)))
         except Exception as e:
-            logger.error(
-                '{}. Exception class: {}. Traceback: {}'.format(str(e.message),
-                                                                str(e.__class__.__name__),
-                                                                str(traceback.print_stack())
-                                                                )
-            )
+            logger.error('{}. Exception class: {}. Traceback: {}'.format(str(e.message),
+                                                                         str(e.__class__.__name__),
+                                                                         str(traceback.print_stack())
+                                                                         )
+                         )
     else:
         logger.info('nodl switch used, proceed with analysis')
 
