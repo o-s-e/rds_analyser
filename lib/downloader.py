@@ -26,7 +26,7 @@ class RetryError(Exception):
 
 
 logger = logging.getLogger('rds_log_downloader')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 console = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console.setFormatter(formatter)
@@ -59,7 +59,7 @@ workdir = os.path.join(args.workdir, rds_instance)
 
 
 if not os.path.exists(workdir):
-    os.mkdir( workdir, 0755)
+    os.makedirs( workdir, 0755)
 
 if args.cron is False:
     log_date = str(args.date)
