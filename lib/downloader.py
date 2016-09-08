@@ -200,7 +200,7 @@ def run():
         logfiles = list_rds_log_files()
         try:
             with Pool(max_workers=int(parallel_processes * 3)) as executor:
-                logfile_future = dict((executor.submit(download, logfile), logfile)
+                logfile_future = zip((executor.map(download, logfile), logfile)
                                       for logfile in logfiles)
 
                 for future in futures.as_completed(logfile_future):
@@ -212,6 +212,7 @@ def run():
                             logger.debug('retry in Pool')
                         else:
                             logger.info('{} done'.format(str(file_result)))
+                            executor.map(download, file_result, str(future.exception()))
                     except Exception as e:
                         logger.debug('just a test {}. Message: {}.'.format(str(e.__class__.__name__), str(e.message)))
                         logger.exception('Pool traceback')
