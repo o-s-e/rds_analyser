@@ -101,8 +101,11 @@ def list_rds_log_files():
 def download(log_file, token=0):
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug(local_log_file)
-    if token == '0':
-        os.remove(local_log_file)
+    try:
+        if token == '0' and os.path.exists(local_log_file):
+            os.remove(local_log_file)
+    except IOError as e:
+        logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
     try:
         rds = boto3.client('rds', region)
     except ClientError as e:
@@ -127,7 +130,7 @@ def download(log_file, token=0):
                     f.write(response['LogFileData'])
                 except ConnectionError as e:
                     logger.debug('Last token during exception: {}'.format(str(token)))
-                    continue
+                    raise RetryError(token)
             else:
                 if not response['AdditionalDataPending']:
                     logger.debug('file {} completed'.format(str(log_file)))
