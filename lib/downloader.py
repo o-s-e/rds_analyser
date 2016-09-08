@@ -213,7 +213,8 @@ def run():
                         else:
                             logger.info('{} done'.format(str(file_result)))
                     except Exception as e:
-                        logger.debug('just a test{}'.format(str(e.__class__.__name__)))
+                        logger.debug('just a test {}. Message: {}.'.format(str(e.__class__.__name__), str(e.message)))
+                        logger.exception('Pool traceback')
 
         except Exception as e:
             logger.error('{}. Exception class: {}. Traceback: {}'.format(str(e.message),
