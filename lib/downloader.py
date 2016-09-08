@@ -210,11 +210,10 @@ def run():
                             logger.error(
                                 '{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
                             logger.dubug('retry in Pool')
-                            executor.submit(download, file_result, str(future.exception()))
                         else:
                             logger.info('{} done'.format(str(file_result)))
                     except Exception as e:
-                        logger.debug('just a test')
+                        logger.debug('just a test{}'.format(str(e.__class__.__name__)))
 
         except Exception as e:
             logger.error('{}. Exception class: {}. Traceback: {}'.format(str(e.message),
