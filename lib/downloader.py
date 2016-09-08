@@ -55,7 +55,11 @@ region = args.region
 rds_instance = args.rds_instance
 pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
-workdir = args.workdir
+workdir = os.path.join(args.workdir, rds_instance)
+
+
+if not os.path.exists(workdir):
+    os.mkdir( workdir, 0755)
 
 if args.cron is False:
     log_date = str(args.date)
@@ -95,7 +99,8 @@ def list_rds_log_files():
 
 
 def download(log_file):
-    local_log_file = os.path.join(workdir, str(log_file).replace('\/', '_'))
+    local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
+    logger.debug(local_log_file)
     try:
         rds = boto3.client('rds', region)
     except ClientError as e:
