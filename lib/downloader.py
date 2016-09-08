@@ -24,6 +24,7 @@ __author__ = 'ose@recommind.com'
 class RetryError(Exception):
     pass
 
+
 logger = logging.getLogger('rds_log_downloader')
 logger.setLevel(logging.DEBUG)
 console = logging.StreamHandler()
@@ -120,26 +121,23 @@ def download(log_file, token='0'):
             )
             f.write(response['LogFileData'])
             while response['AdditionalDataPending']:
-                try:
-                    token = response['Marker']
-                    # logger.debug('Logfile: {}. Response token: {}'.format(str(log_file), str(token)))
-                    response = rds.download_db_log_file_portion(
-                        DBInstanceIdentifier=rds_instance,
-                        LogFileName=log_file,
-                        Marker=token,
-                        NumberOfLines=1000
-                    )
-                    f.write(response['LogFileData'])
-                except ConnectionError as e:
-                    logger.debug('Last token during exception: {}'.format(str(token)))
-                    raise RetryError(token)
+                token = response['Marker']
+                # logger.debug('Logfile: {}. Response token: {}'.format(str(log_file), str(token)))
+                response = rds.download_db_log_file_portion(
+                    DBInstanceIdentifier=rds_instance,
+                    LogFileName=log_file,
+                    Marker=token,
+                    NumberOfLines=1000
+                )
+                f.write(response['LogFileData'])
             else:
                 if not response['AdditionalDataPending']:
                     logger.debug('file {} completed'.format(str(log_file)))
                     f.write(response['LogFileData'])
                 else:
                     logger.error('Response sucks: {}'.format(str(response)))
-        except ClientError as e:
+        except Exception as e:
+            logger.debug('ExceptionClass download: {}'.format(e.__class__.__name__))
             logger.error('ClientError: {}'.format(str(e.message)))
             raise RetryError(token)
 
