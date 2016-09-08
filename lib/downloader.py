@@ -22,7 +22,10 @@ __author__ = 'ose@recommind.com'
 
 
 class RetryError(Exception):
-    pass
+    def __init__(self, message, token, *args):
+        self.message = message
+        self.token = token
+        super(RetryError, self).__init__(message, token, *args)
 
 
 logger = logging.getLogger('rds_log_downloader')
@@ -57,9 +60,8 @@ pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
 workdir = os.path.join(args.workdir, rds_instance)
 
-
 if not os.path.exists(workdir):
-    os.makedirs( workdir, 0755)
+    os.makedirs(workdir, 0755)
 
 if args.cron is False:
     log_date = str(args.date)
@@ -98,16 +100,17 @@ def list_rds_log_files():
         sys.exit(2)
 
 
-def download(log_file):
+def download(log_file, token=0):
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug(local_log_file)
+    if token == 0:
+        os.remove(local_log_file)
     try:
         rds = boto3.client('rds', region)
     except ClientError as e:
         logger.error(e)
-    with open(local_log_file, 'w') as f:
+    with open(local_log_file, 'a') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
-        token = '0'
         # logger.debug('Logfile: {}. Init token: {}'.format(str(log_file), str(token)))
         try:
             response = rds.download_db_log_file_portion(
@@ -135,7 +138,7 @@ def download(log_file):
                     logger.error('Response sucks: {}'.format(str(response)))
         except ClientError as e:
             logger.error(e.message)
-            raise RetryError
+            raise RetryError(token)
 
 
 def email_result(recipient, attachment):
@@ -205,7 +208,7 @@ def run():
                             logfiles_retry += 1
                             logger.info(
                                 'Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
-                            executor.submit(download, file_result)
+                            executor.submit(download, file_result, int(future.exception.token))
                     else:
                         logger.info('{} done'.format(str(file_result)))
         except Exception as e:
