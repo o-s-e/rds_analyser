@@ -22,10 +22,8 @@ __author__ = 'ose@recommind.com'
 
 
 class RetryError(Exception):
-    def __init__(self, message, token, *args):
-        self.message = message
+    def __init__(self, token):
         self.token = token
-        super(RetryError, self).__init__(message, token, *args)
 
 
 logger = logging.getLogger('rds_log_downloader')
