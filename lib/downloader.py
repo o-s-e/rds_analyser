@@ -210,7 +210,8 @@ def run():
                         if logfiles_retry < 3:
                             logfiles_retry += 1
                             logger.info(
-                                'Retrying the {}, time : {}'.format(str(logfiles_retry), str(file_result)))
+                                'Retrying the {}, time : {}, token: {}'.format(str(logfiles_retry), str(file_result),
+                                                                               str(future.exception.token)))
                             executor.submit(download, file_result, str(future.exception.token))
                     else:
                         logger.info('{} done'.format(str(file_result)))
