@@ -214,10 +214,11 @@ def run():
                 for future in futures.as_completed(logfile_future):
                     file_result = logfile_future[future]
                     if future.exception() is not None:
-                        logger.error('{} failed with an Exception: {}.'.format(file_result, future.exception()))
+                        logger.error('{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
                         if future.exception() == 'fatal':
                             logger.fatal('{} will be skipped'.format(str(file_result)))
                         else:
+                            logger.dubug('retry in Pool')
                             executor.submit(download, file_result, str(future.exception()))
                     else:
                         logger.info('{} done'.format(str(file_result)))
