@@ -134,7 +134,7 @@ def download(log_file, token='0'):
                     f.write(response['LogFileData'])
                 except ConnectionError as e:
                     logger.debug('Last token during exception: {}'.format(str(token)))
-                    raise RetryError(token)
+                    raise RetryError('Retry', token)
             else:
                 if not response['AdditionalDataPending']:
                     logger.debug('file {} completed'.format(str(log_file)))
@@ -143,7 +143,7 @@ def download(log_file, token='0'):
                     logger.error('Response sucks: {}'.format(str(response)))
         except ClientError as e:
             logger.error(e.message)
-            raise RetryError(token)
+            raise RetryError('Retry', token)
 
 
 def email_result(recipient, attachment):
