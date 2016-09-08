@@ -110,24 +110,22 @@ def download(log_file, token='0'):
 
     with open(local_log_file, 'a') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
-        # logger.debug('Logfile: {}. Init token: {}'.format(str(log_file), str(token)))
         try:
             rds = boto3.client('rds', region)
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
                 LogFileName=log_file,
                 Marker=token,
-                NumberOfLines=1000
+                NumberOfLines=5000
             )
             f.write(response['LogFileData'])
             while response['AdditionalDataPending']:
                 token = response['Marker']
-                # logger.debug('Logfile: {}. Response token: {}'.format(str(log_file), str(token)))
                 response = rds.download_db_log_file_portion(
                     DBInstanceIdentifier=rds_instance,
                     LogFileName=log_file,
                     Marker=token,
-                    NumberOfLines=1000
+                    NumberOfLines=5000
                 )
                 f.write(response['LogFileData'])
             else:
@@ -135,7 +133,7 @@ def download(log_file, token='0'):
                     logger.debug('file {} completed'.format(str(log_file)))
                     f.write(response['LogFileData'])
                 else:
-                    logger.error('Response sucks: {}'.format(str(response)))
+                    logger.error('Response Error: {}'.format(str(response)))
         except Exception as e:
             logger.debug('ExceptionClass download: {}'.format(e.__class__.__name__))
             logger.error('ClientError: {}'.format(str(e.message)))
