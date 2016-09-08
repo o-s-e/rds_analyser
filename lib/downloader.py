@@ -209,7 +209,7 @@ def run():
                         if future.exception() is not None:
                             logger.error(
                                 '{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
-                            logger.dubug('retry in Pool')
+                            logger.debug('retry in Pool')
                         else:
                             logger.info('{} done'.format(str(file_result)))
                     except Exception as e:
