@@ -117,7 +117,7 @@ def download(log_file, token='0'):
         else:
             logger.info('This is retry # {}'.format(str(pool_state[log_file])))
     else:
-        pool_state[log_file] = 0
+        pool_state[log_file] = 1
 
     with open(local_log_file, 'a') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
