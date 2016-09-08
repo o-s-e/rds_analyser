@@ -100,6 +100,7 @@ def list_rds_log_files():
 
 
 def download(log_file, token='0'):
+    logger.debug(pool_state)
     logger.debug('Token = {}'.format(str(token)))
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug(local_log_file)
