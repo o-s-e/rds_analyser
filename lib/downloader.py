@@ -56,6 +56,7 @@ rds_instance = args.rds_instance
 pg_badger_path = spawn.find_executable('pgbadger')
 email_recipient = args.email
 workdir = os.path.join(args.workdir, rds_instance)
+fatal_logs = []
 
 if not os.path.exists(workdir):
     os.makedirs(workdir, 0755)
@@ -107,6 +108,13 @@ def download(log_file, token='0'):
             os.remove(local_log_file)
     except IOError as e:
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
+    retries = 0
+    if int(token) > 0:
+        retries += 1
+        logger.info('This is retry # {}'.format(str(token)))
+    if int(token) > 5:
+        fatal_logs.append(log_file)
+        logger.fatal('Could not completely download file{}'.format(str(log_file)))
 
     with open(local_log_file, 'a') as f:
         logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
@@ -150,18 +158,21 @@ def email_result(recipient, attachment):
     msg.preamble = 'Multipart message.\r\n'
 
     # the message body
-    text = 'Howdy -- here is the daily PgBadger report from {}for {}.'.format(str(log_date), str(rds_instance))
+    text = 'Howdy -- here is the daily PgBadger report from {}for {}.' \
+           ' \r\n Could not download {}'.format(str(log_date), str(rds_instance), str(fatal_logs))
+
     html = """\
     <html>
       <head>Howdy -- here is the daily PgBadger report from {}</head>
       <body>
         <p>For db {}.<br>
+        <p>Could not download {}<br>
            <br>
 
         </p>
       </body>
     </html>
-    """.format(str(log_date), str(rds_instance))
+    """.format(str(log_date), str(rds_instance), str(fatal_logs))
 
     part1 = MIMEText(text, 'plain', 'utf-8')
     part2 = MIMEText(html, 'html', 'utf-8')
@@ -198,18 +209,11 @@ def run():
                 logfile_future = dict((executor.submit(download, logfile), logfile)
                                       for logfile in logfiles)
                 for future in futures.as_completed(logfile_future):
-                    logfiles_retry = 0
                     file_result = logfile_future[future]
                     if future.exception() is not None:
                         logger.error('{} failed with an Exception: {}.'.format(file_result, future.exception()))
-                        if logfiles_retry < 3:
-                            logfiles_retry += 1
-                            logger.info('Retrying the {}, time : {}, token: {}'.format(str(logfiles_retry),
-                                                                                       str(file_result),
-                                                                                       str(future.exception())
-                                                                                       )
-                                        )
-                            executor.submit(download, file_result, str(future.exception()))
+                        logger.info('Retrying, time : {}, token: {}'.format(str(file_result), str(future.exception())))
+                        executor.submit(download, file_result, str(future.exception()))
                     else:
                         logger.info('{} done'.format(str(file_result)))
         except Exception as e:
