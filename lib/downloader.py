@@ -211,9 +211,9 @@ def run():
                             logger.error(
                                 '{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
                             logger.debug('retry in Pool')
+                            executor.submit(download, file_result, str(future.exception()))
                         else:
                             logger.info('{} done'.format(str(file_result)))
-                            executor.submit(download, file_result, str(future.exception()))
                     except Exception as e:
                         logger.debug('just a test {}. Message: {}.'.format(str(e.__class__.__name__), str(e.message)))
                         logger.debug('poolsize after exception: {}'.format(executor._work_queue.qsize()))
