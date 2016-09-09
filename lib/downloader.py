@@ -100,9 +100,9 @@ def list_rds_log_files():
 
 
 def download(log_file, token='0'):
-    logger.debug('Token = {}'.format(str(token)))
+    logger.debug(' Starting Token = {}'.format(str(token)))
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
-    logger.debug(local_log_file)
+    logger.debug('Local logfile:'.format(str(local_log_file)))
     try:
         if token == '0' and os.path.exists(local_log_file):
             logger.debug('Removing old logfile: {}'.format(str(local_log_file)))
@@ -111,7 +111,7 @@ def download(log_file, token='0'):
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
 
     with open(local_log_file, 'a') as f:
-        logger.info('downloading {rds} log file {file}'.format(rds=rds_instance, file=log_file))
+        logger.info('downloading {} log file {}'.format(rds_instance, log_file))
         try:
             rds = boto3.client('rds', region)
             response = rds.download_db_log_file_portion(
@@ -206,18 +206,14 @@ def run():
                 for future in futures.as_completed(logfile_future):
                     file_result = logfile_future[future]
                     try:
-                        logger.debug('poolsize before exception: {}'.format(executor._work_queue.qsize()))
                         if future.exception() is not None:
-                            logger.error(
-                                '{} failed with an Exception. token: {}.'.format(file_result, future.exception()))
-                            logger.debug('retry in Pool')
+                            logger.error('failed with an Exception. token: {}.'.format(future.exception()))
+                            logger.debug('retry. {} added back the the queue'.format(str(file_result)))
                             executor.submit(download, file_result, str(future.exception()))
                         else:
                             logger.info('{} done'.format(str(file_result)))
                     except Exception as e:
-                        logger.debug('just a test {}. Message: {}.'.format(str(e.__class__.__name__), str(e.message)))
-                        logger.debug('poolsize after exception: {}'.format(executor._work_queue.qsize()))
-                        logger.exception('Pool traceback')
+                        logger.debug('Pool traceback: {}'.format(str(future.exception_info)))
                         continue
 
         except Exception as e:
