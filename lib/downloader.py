@@ -219,7 +219,7 @@ def run():
                         if future.exception() is not None:
                             logger.error('failed with an Exception. token: {}.'.format(future.exception()))
                             logger.debug('retry. {} added back the the queue'.format(str(file_result)))
-                            executor.submit(download, file_result, str(future.exception()))
+                            executor.submit(download, file_result['LogFileName'], str(future.exception()))
                         else:
                             logger.info('{} done'.format(str(file_result)))
                     except Exception as e:
