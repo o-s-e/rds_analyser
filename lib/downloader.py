@@ -91,7 +91,6 @@ def list_rds_log_files():
             DBInstanceIdentifier=rds_instance,
             FilenameContains=log_date)
         logger.debug('RDS logfiles dict: {}'.format(str(response)))
-        map(lambda d: d.pop('LastWritten'), dict['DescribeDBLogFiles'])
         logger.debug('logfile list: {}'.format(str(dict['DescribeDBLogFiles'])))
         if not dict['LogFileName']:
             logger.fatal('No logfiles available')
