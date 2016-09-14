@@ -91,9 +91,13 @@ def list_rds_log_files():
             DBInstanceIdentifier=rds_instance,
             FilenameContains=log_date)
         logger.debug('RDS logfiles dict: {}'.format(str(response)))
-        logfile_list = map(lambda d: d['LogFileName'], response['DescribeDBLogFiles'])
+        logfile_list = map(lambda d: d['LogFileName']['size'], response['DescribeDBLogFiles'])
         logger.debug('logfile list: {}'.format(str(logfile_list)))
-        return logfile_list
+        if not logfile_list:
+            logger.fatal('No logfiles available')
+            sys.exit(2)
+        else:
+            return logfile_list
     except ClientError as e:
         logger.error(e)
         sys.exit(2)
@@ -242,9 +246,10 @@ if __name__ == '__main__':
 
     try:
         try:
-            run()
+            list_rds_log_files()
+            # run()
             logger.info('Proceeding with analysis')
-            run_external_cmd(cmd)
+            # run_external_cmd(cmd)
             if args.email is None:
                 logger.info('No recipient, no email')
             else:
