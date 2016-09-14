@@ -91,19 +91,20 @@ def list_rds_log_files():
             DBInstanceIdentifier=rds_instance,
             FilenameContains=log_date)
         logger.debug('RDS logfiles dict: {}'.format(str(response)))
-        logfile_list = map(lambda d: d['LogFileName']['size'], response['DescribeDBLogFiles'])
-        logger.debug('logfile list: {}'.format(str(logfile_list)))
-        if not logfile_list:
+        map(lambda d: d.pop('LastWritten'), dict['DescribeDBLogFiles'])
+        logger.debug('logfile list: {}'.format(str(dict['DescribeDBLogFiles'])))
+        if not dict['LogFileName']:
             logger.fatal('No logfiles available')
             sys.exit(2)
         else:
-            return logfile_list
+            return dict['DescribeDBLogFiles']
     except ClientError as e:
         logger.error(e)
         sys.exit(2)
 
 
 def download(log_file, token='0'):
+    current_file_dict = filter(lambda x: x.get('LogFileName') == str(log_file), list_rds_log_files())[0]
     logger.debug(' Starting Token = {}'.format(str(token)))
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug('Local logfile:'.format(str(local_log_file)))
@@ -138,8 +139,14 @@ def download(log_file, token='0'):
                 if not response['AdditionalDataPending']:
                     logger.debug('file {} completed'.format(str(log_file)))
                     f.write(response['LogFileData'])
+
                 else:
                     logger.error('Response Error: {}'.format(str(response)))
+
+            getsize = os.path.getsize(local_log_file)
+            if int(getsize) != int(current_file_dict['Size']):
+                raise Exception('Local logfile size {} doesnt match aws log_file size {}'.format(str(getsize), str(
+                    current_file_dict['Size'])))
         except Exception as e:
             logger.debug('ExceptionClass download: {}'.format(e.__class__.__name__))
             logger.error('ClientError: {}'.format(str(e.message)))
@@ -201,7 +208,7 @@ def run():
                                                                                               str(parallel_processes)
                                                                                               )
                     )
-        logfiles = list_rds_log_files()
+        logfiles = list_rds_log_files()['LogFileName']
         try:
             with Pool(max_workers=int(parallel_processes * 3)) as executor:
                 logfile_future = dict((executor.submit(download, logfile), logfile)
