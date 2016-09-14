@@ -206,10 +206,10 @@ def run():
                                                                                               str(parallel_processes)
                                                                                               )
                     )
-        logfiles = list_rds_log_files()['LogFileName']
+        logfiles = list_rds_log_files()
         try:
             with Pool(max_workers=int(parallel_processes * 3)) as executor:
-                logfile_future = dict((executor.submit(download, logfile), logfile)
+                logfile_future = dict((executor.submit(download, logfile['LogFileName']), logfile)
                                       for logfile in logfiles)
 
                 for future in futures.as_completed(logfile_future):
