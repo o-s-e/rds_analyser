@@ -253,10 +253,9 @@ if __name__ == '__main__':
 
     try:
         try:
-            list_rds_log_files()
-            # run()
+            run()
             logger.info('Proceeding with analysis')
-            # run_external_cmd(cmd)
+            run_external_cmd(cmd)
             if args.email is None:
                 logger.info('No recipient, no email')
             else:
