@@ -91,12 +91,11 @@ def list_rds_log_files():
             DBInstanceIdentifier=rds_instance,
             FilenameContains=log_date)
         logger.debug('RDS logfiles dict: {}'.format(str(response)))
-        logger.debug('logfile list: {}'.format(str(dict['DescribeDBLogFiles'])))
-        if not dict['LogFileName']:
+        if not response['DescribeDBLogFiles']:
             logger.fatal('No logfiles available')
             sys.exit(2)
         else:
-            return dict['DescribeDBLogFiles']
+            return response['DescribeDBLogFiles']
     except ClientError as e:
         logger.error(e)
         sys.exit(2)
