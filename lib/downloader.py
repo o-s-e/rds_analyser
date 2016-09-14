@@ -199,7 +199,7 @@ def run():
                     )
         logfiles = list_rds_log_files()
         try:
-            with Pool(max_workers=int(parallel_processes * 3)) as executor:
+            with Pool(max_workers=int(parallel_processes * 2)) as executor:
                 logfile_future = dict((executor.submit(download, logfile), logfile)
                                       for logfile in logfiles)
 
