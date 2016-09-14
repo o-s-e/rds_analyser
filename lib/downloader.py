@@ -140,8 +140,9 @@ def download(log_file, token='0'):
 
                 else:
                     logger.error('Response Error: {}'.format(str(response)))
-
+            logger.info('Comparing sizes')
             getsize = os.path.getsize(local_log_file)
+            logger.info('Local size for {}: {}'.format(str(local_log_file), str(getsize)))
             if int(getsize) != int(current_file_dict['Size']):
                 raise Exception('Local logfile size {} doesnt match aws log_file size {}'.format(str(getsize), str(
                     current_file_dict['Size'])))
