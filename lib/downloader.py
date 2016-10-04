@@ -93,7 +93,6 @@ def list_rds_log_files():
         logger.debug('RDS logfiles dict: {}'.format(str(response)))
         if not response['DescribeDBLogFiles']:
             logger.fatal('No logfiles available')
-            sys.exit(2)
         else:
             return response['DescribeDBLogFiles']
     except ClientError as e:
@@ -219,7 +218,8 @@ def run():
                         if future.exception() is not None:
                             logger.error('failed with an Exception. token: {}.'.format(future.exception()))
                             logger.debug('retry. {} added back the the queue'.format(str(file_result)))
-                            executor.submit(download, file_result['LogFileName'], str(future.exception()))
+                            logfile_future.update(
+                                executor.submit(download, file_result['LogFileName'], str(future.exception())))
                         else:
                             logger.info('{} done'.format(str(file_result)))
                     except Exception as e:
