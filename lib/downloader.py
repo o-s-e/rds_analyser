@@ -26,7 +26,7 @@ class RetryError(Exception):
 
 
 logger = logging.getLogger('rds_log_downloader')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 console = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console.setFormatter(formatter)
