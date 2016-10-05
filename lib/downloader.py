@@ -111,10 +111,9 @@ def download(log_file, token='0'):
             os.remove(local_log_file)
     except IOError as e:
         logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
-
-    with open(local_log_file, 'a') as f:
-        logger.info('downloading {} log file {}'.format(rds_instance, log_file))
-        try:
+    try:
+        with open(local_log_file, 'a') as f:
+            logger.info('downloading {} log file {}'.format(rds_instance, log_file))
             rds = boto3.client('rds', region)
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
@@ -145,10 +144,10 @@ def download(log_file, token='0'):
             if int(getsize) != int(current_file_dict['Size']):
                 raise Exception('Local logfile size {} doesnt match aws log_file size {}'.format(str(getsize), str(
                     current_file_dict['Size'])))
-        except Exception as e:
-            logger.debug('ExceptionClass download: {}'.format(e.__class__.__name__))
-            logger.error('ClientError: {}'.format(str(e.message)))
-            raise RetryError(token)
+    except Exception as e:
+        logger.debug('ExceptionClass download: {}'.format(e.__class__.__name__))
+        logger.error('ClientError: {}'.format(str(e.message)))
+        raise RetryError(token)
 
 
 def email_result(recipient, attachment):
