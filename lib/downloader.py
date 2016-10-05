@@ -101,6 +101,7 @@ def list_rds_log_files():
 
 
 def download(log_file, token='0'):
+    current_file_dict = filter(lambda x: x.get('LogFileName') == str(log_file), list_rds_log_files())[0]
     logger.debug(' Starting Token = {}'.format(str(token)))
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug('Local logfile:'.format(str(local_log_file)))
