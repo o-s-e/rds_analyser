@@ -16,7 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from multiprocessing import cpu_count
 from botocore.exceptions import ClientError, ConnectionError
 from concurrent import futures
-from concurrent.futures import ThreadPoolExecutor as Pool
+from concurrent.futures import ProcessPoolExecutor as Pool
 
 __author__ = 'ose@recommind.com'
 
@@ -106,15 +106,16 @@ def download(log_file, token='0'):
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug('Local logfile:'.format(str(local_log_file)))
     try:
-        if token == '0' and os.path.exists(local_log_file):
-            logger.debug('Removing old logfile: {}'.format(str(local_log_file)))
-            os.remove(local_log_file)
-    except IOError as e:
-        logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
-
-    with open(local_log_file, 'a') as f:
-        logger.info('downloading {} log file {}'.format(rds_instance, log_file))
         try:
+            if token == '0' and os.path.exists(local_log_file):
+                logger.debug('Removing old logfile: {}'.format(str(local_log_file)))
+                os.remove(local_log_file)
+        except IOError as e:
+            logger.error('Could not delete file: {}, error : {}'.format(str(local_log_file), str(e.message)))
+            sys.exit(2)
+
+        with open(local_log_file, 'a') as f:
+            logger.info('downloading {} log file {}'.format(rds_instance, log_file))
             rds = boto3.client('rds', region)
             response = rds.download_db_log_file_portion(
                 DBInstanceIdentifier=rds_instance,
@@ -145,10 +146,10 @@ def download(log_file, token='0'):
             if int(getsize) != int(current_file_dict['Size']):
                 raise Exception('Local logfile size {} doesnt match aws log_file size {}'.format(str(getsize), str(
                     current_file_dict['Size'])))
-        except Exception as e:
-            logger.debug('ExceptionClass download: {}'.format(e.__class__.__name__))
-            logger.error('ClientError: {}'.format(str(e.message)))
-            raise RetryError(token)
+    except Exception as error:
+        logger.debug('ExceptionClass download: {}'.format(error.__class__.__name__))
+        logger.error('ClientError: {}'.format(str(error.message)))
+        raise RetryError(token)
 
 
 def email_result(recipient, attachment):
