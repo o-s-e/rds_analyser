@@ -101,7 +101,6 @@ def list_rds_log_files():
 
 
 def download(log_file, token='0'):
-    current_file_dict = filter(lambda x: x.get('LogFileName') == str(log_file), list_rds_log_files())[0]
     logger.debug(' Starting Token = {}'.format(str(token)))
     local_log_file = os.path.join(workdir, str(log_file).replace('error/', ''))
     logger.debug('Local logfile:'.format(str(local_log_file)))
@@ -137,7 +136,6 @@ def download(log_file, token='0'):
                 if not response['AdditionalDataPending']:
                     logger.debug('file {} completed'.format(str(log_file)))
                     f.write(response['LogFileData'])
-
                 else:
                     logger.error('Response Error: {}'.format(str(response)))
             logger.info('Comparing sizes')
@@ -209,8 +207,8 @@ def run():
                     )
         logfiles = list_rds_log_files()
         try:
-            with Pool(max_workers=int(parallel_processes * 3)) as executor:
-                logfile_future = dict((executor.submit(download, logfile['LogFileName']), logfile)
+            with Pool(max_workers=int(parallel_processes * 2)) as executor:
+                logfile_future = dict((executor.submit(download, logfile), logfile)
                                       for logfile in logfiles)
 
                 for future in futures.as_completed(logfile_future):
