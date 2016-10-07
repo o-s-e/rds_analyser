@@ -216,11 +216,14 @@ def run():
                         if future.exception() is not None:
                             logger.error('failed with an Exception. token: {}.'.format(future.exception()))
                             logger.debug('retry. {} added back the the queue'.format(str(file_result)))
+                            logger.debug('queue check1: {}'.format(str(logfile_future.viewitems())))
                             logfile_future.update(
                                 executor.submit(download, file_result['LogFileName'], str(future.exception())))
                         else:
+                            logger.debug('queue check2: {}'.format(str(logfile_future.viewitems())))
                             logger.info('{} done'.format(str(file_result)))
                     except Exception as e:
+                        logger.debug('queue check3: {}'.format(str(logfile_future.viewitems())))
                         logger.debug('Pool traceback: {}'.format(str(future.exception_info)))
                         continue
 
@@ -230,8 +233,11 @@ def run():
                                                                          str(traceback.print_stack())
                                                                          )
                          )
+
     else:
         logger.info('nodl switch used, proceed with analysis')
+
+
 
 
 def run_external_cmd(commandline):
