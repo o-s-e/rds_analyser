@@ -222,8 +222,9 @@ def run():
                         else:
                             logger.debug('queue check2: {}'.format(str(logfile_future.viewitems())))
                             logger.info('{} done'.format(str(file_result)))
-                    except Exception as e:
-                        logger.debug('queue check3: {}'.format(str(logfile_future.viewitems())))
+                    except RetryError as e:
+                        logger.debug('queue check3 we still need to catch stand stay in the loop: {}'.format(
+                            str(logfile_future.viewitems())))
                         logger.debug('Pool traceback: {}'.format(str(future.exception_info)))
                         continue
 
@@ -236,8 +237,6 @@ def run():
 
     else:
         logger.info('nodl switch used, proceed with analysis')
-
-
 
 
 def run_external_cmd(commandline):
